@@ -2,8 +2,8 @@
 (instrument 0 "wave('/media/storage/samples/clean/pend_kick-x-01.wav') * 0.8")
 (instrument 1 "wave('/media/storage/samples/clean/pend_sn-x-04.wav') * 0.5")
 (instrument 2 "wave('/media/storage/samples/clean/pend_hats-x-01.wav')")
-(instrument 3 "sin(hz=130.0) * adsr(0.12, 0.12, 0.7, 0.30) * 40.0")
 (instrument 4 "sin(hz=260.0) * adsr(0.12, 0.12, 0.7, 0.30) * 40.0")
+(instrument 3 "wave('/media/storage/samples/clean/portis_bass.wav')")
 
 (track 0 "kicks")
 (track 1 "snares")

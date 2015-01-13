@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
+
+#include <X11/Xlib.h>
 
 #include <thread>
 #include <vector>
@@ -45,6 +48,8 @@ struct Region {
   View* view;
   
   Instrument* instr; // direct pointer to instrument
+
+  long _prev_inpoint;
 };
 
 struct Track {
@@ -54,13 +59,13 @@ struct Track {
   
   View* view;
 
-  vector<Region> regions;
+  vector<Region*> regions;
 };
 
 struct Project {
-  vector<Track> tracks;
-  vector<Region> regions;  
-  vector<Instrument> instruments;
+  vector<Track*> tracks;
+  vector<Region*> regions;  
+  vector<Instrument*> instruments;
 };
 
 
@@ -104,12 +109,12 @@ static float bpm = 120.0;
 #define TMUL 1000000L
 
 static long loop_start_point = 0;
-static long loop_end_point = TMUL*1000;
+static long loop_end_point = 1000;
 
 void clear_fired_regions() {
-  for (Track& t : active_project.tracks) {
-    for (Region& r : t.regions) {
-      r.fired = false;
+  for (Track* t : active_project.tracks) {
+    for (Region* r : t->regions) {
+      r->fired = false;
     }
   }
 }
@@ -147,8 +152,8 @@ void audio_task()
     if (playback_enabled) {
       //printf("delta: %ld playhead: %ld pb: %d\n",delta,playhead,playback_enabled);
       playhead += delta;
-      if (playhead>loop_end_point*bpm_factor) {
-        playhead = loop_start_point*bpm_factor;
+      if (playhead>loop_end_point*bpm_factor*TMUL) {
+        playhead = loop_start_point*bpm_factor*TMUL;
         printf("looped to %d\n",playhead);
         
         // looped.
@@ -157,16 +162,16 @@ void audio_task()
       }
       //printf("elaps: %ld\n",elaps);
 
-      for (Track& t : active_project.tracks) {
-        for (Region& r : t.regions) {
-          long rstart = (long)r.inpoint * TMUL * bpm_factor;
-          long rstop  = rstart + (long)r.length * TMUL * bpm_factor;
-          if (!r.fired && playhead>=rstart && playhead<rstop) {
-            printf("r: %d rstart: %ld at %ld\n",r.id,rstart,playhead);
+      for (Track* t : active_project.tracks) {
+        for (Region* r : t->regions) {
+          long rstart = (long)r->inpoint * TMUL * bpm_factor;
+          long rstop  = rstart + (long)r->length * TMUL * bpm_factor;
+          if (!r->fired && playhead>=rstart && playhead<rstop) {
+            printf("r: %d rstart: %ld at %ld\n",r->id,rstart,playhead);
             
             //printf("trigger %d at %d",ri,elaps);
-            r.fired = true;
-            LydProgram* instr = active_project.instruments[r.instrument_id].lyd;
+            r->fired = true;
+            LydProgram* instr = active_project.instruments[r->instrument_id]->lyd;
             //printf("r: %d instr: %d %x\n",r.id,r.sample_id,instr);
             LydVoice* voice = lyd_voice_new(lyd, instr, 0, voice_tag++);
             lyd_voice_set_duration(lyd, voice, 0.1);
@@ -203,11 +208,11 @@ float zoom_x = 0.5;
 void update_model_from_ui() {
   Project& p = active_project;
   
-  for (Track& t : p.tracks) {
-    for (Region& r : t.regions) {
-      if (r.view) {
+  for (Track* t : p.tracks) {
+    for (Region* r : t->regions) {
+      if (r->view) {
         // move ui updates to model
-        r.inpoint = (long)r.view->left()/zoom_x;
+        r->inpoint = (long)r->view->left()/zoom_x;
         //printf("region %d inpoint: %d\n",r.id,r.inpoint);
       }
     }
@@ -231,10 +236,69 @@ enum mouse_state_t {
 };
 
 mouse_state_t mouse_state = MS_IDLE;
+int mouse_dx = 0;
+int mouse_dy = 0;
+long drag_x1 = 0;
+long drag_y1 = 0;
 
 void toggle_playback() {
   clear_fired_regions();
   playback_enabled = 1-playback_enabled;
+}
+
+Region* view_to_region(View* v) {
+  for (Track* t : active_project.tracks) {
+    for (Region* r : t->regions) {
+      if (r->view == v) {
+        return r;
+      }
+    }
+  }
+  return NULL;
+}
+
+Track* region_to_track(Region* r_needle) {
+  for (Track* t : active_project.tracks) {
+    for (Region* r : t->regions) {
+      if (r == r_needle) {
+        return t;
+      }
+    }
+  }
+  return NULL;
+}
+
+vector<Region*> selected_regions() {
+  vector<Region*> res;
+  for (Track* t : active_project.tracks) {
+    for (Region* r : t->regions) {
+      if (r->selected) {
+        res.push_back(r);
+      }
+    }
+  }
+  return res;
+}
+
+void deselect_regions() {
+  vector<Region*> regions = selected_regions();
+
+  for (Region* r : regions) {
+    r->selected = false;
+  }
+}
+
+void delete_selected_regions() {
+  vector<Region*> regions = selected_regions();
+
+  for (Region* r : regions) {
+    Track* t = region_to_track(r);
+    if (t) {
+      vector<Region*>& v = t->regions;
+      r->view->remove();
+      v.erase(remove(begin(v), end(v), r), end(v));
+    }
+  }
 }
 
 bool on_toolbar_mouseup(View* v, GLV& glv) {
@@ -246,79 +310,77 @@ bool on_root_mouseup(View * v, GLV& glv) {
   //printf("on_root_mouseup\n");
   mouse_state = MS_IDLE;
   //update_model_from_ui();
-  return true;
+  return false;
 }
 
 bool on_root_mousedown(View * v, GLV& glv) {
   //printf("on_root_mouseup\n");
   //transforming = true;
+  deselect_regions();
   return false;
-}
-
-Region* view_to_region(View* v) {
-  for (Track& t : active_project.tracks) {
-    for (Region& r : t.regions) {
-      if (r.view == v) {
-        return &r;
-      }
-    }
-  }
-  return NULL;
-}
-
-Track* region_to_track(Region* r_needle) {
-  for (Track& t : active_project.tracks) {
-    for (Region& r : t.regions) {
-      if (&r == r_needle) {
-        return &t;
-      }
-    }
-  }
-  return NULL;
-}
-
-vector<Region*> selected_regions() {
-  vector<Region*> res;
-  for (Track& t : active_project.tracks) {
-    for (Region& r : t.regions) {
-      if (r.selected) {
-        res.push_back(&r);
-      }
-    }
-  }
-  printf ("selected: %d\n",res.size());
-  return res;
 }
 
 bool on_region_mousedown(View * v, GLV& glv) {
   Region* r = view_to_region(v);
   printf("on_region_mousedown: %x\n",r);
   if (r) {
-    
     vector<Region*> regions = selected_regions();
-
-    if (!glv.keyboard().shift()) {
+    
+    if (!glv.keyboard().shift() && !glv.keyboard().ctrl()) {
       for (Region* r : regions) {
         r->selected = false;
       }
     }
 
+    r->selected = true;
+      
     if (glv.keyboard().ctrl()) {
       // clone region
       for (Region* sr : regions) {
         Track* t = region_to_track(sr);
         if (t) {
-          Region dup = *sr;
-          dup.view = NULL;
-          dup.selected = true;
+          Region* dup = new Region;
+          memcpy(dup, sr, sizeof(Region));
+          dup->view = NULL;
+          dup->selected = true;
           t->regions.push_back(dup);
+          sr->selected = false;
         }
       }
-    } else {
-      r->selected = true;
     }
+    
     mouse_state = MS_MOVING;
+    mouse_dx = 0;
+    mouse_dy = 0;
+    drag_x1 = glv.mouse().x();
+    drag_y1 = glv.mouse().y();
+
+    for (Region* sr : selected_regions()) {
+      sr->_prev_inpoint = sr->inpoint; // save state when we started dragging
+    }
   }
+  return false;
+}
+
+long snap_time(long p) {
+  long snap = 1000/8;
+  long thresh = 20;
+  
+  long p1=p-(p%snap);
+  long p2=snap+p-(p%snap);
+
+  //printf("p: %ld p1: %ld\n",p,p1);
+
+  if (abs(p-p1) < thresh) return p1;
+  if (abs(p-p2) < thresh) return p2;
+  
+  return p;
+}
+
+bool on_loop_start_init_drag(View* v, GLV& glv) {
+  drag_x1 = loop_start_point;
+  drag_y1 = 0;
+  mouse_dx = 0;
   return true;
 }
 
@@ -326,32 +388,44 @@ bool on_loop_start_drag(View* v, GLV& glv) {
   float bpm_factor = 240.0/bpm;
   
   Mouse m = glv.mouse();
+  mouse_dx += m.dx();
+  
+  loop_start_point = snap_time(drag_x1 + (mouse_dx/zoom_x/bpm_factor));
+  return false;
+}
 
-  loop_start_point += TMUL*(m.dx()/zoom_x/bpm_factor);
+bool on_loop_end_init_drag(View* v, GLV& glv) {
+  drag_x1 = loop_end_point;
+  drag_y1 = 0;
+  mouse_dx = 0;
+  return true;
 }
 
 bool on_loop_end_drag(View* v, GLV& glv) {
   float bpm_factor = 240.0/bpm;
   
   Mouse m = glv.mouse();
+  mouse_dx += m.dx();
 
-  loop_end_point += TMUL*(m.dx()/zoom_x/bpm_factor);
+  loop_end_point = snap_time(drag_x1 + (mouse_dx/zoom_x/bpm_factor));
+  return false;
 }
 
 bool on_root_mousemove(View* v, GLV& glv) {
   float bpm_factor = 240.0/bpm;
   
   Mouse m = glv.mouse();
+  mouse_dx += m.dx();
 
   //printf("root_mousemove %d\n",mouse_state);
   
   if (mouse_state == MS_MOVING) {
     vector<Region*> regions = selected_regions();
     for (Region* r : regions) {
-      printf("  moving dx %f\n",m.dx());
-      r->inpoint += m.dx()/zoom_x/bpm_factor;
+      r->inpoint = snap_time(r->_prev_inpoint + mouse_dx/zoom_x/bpm_factor);
     }
   }
+  return true;
 }
 
 bool on_bpm_keyup(View * v, GLV& glv) {
@@ -380,6 +454,9 @@ bool on_root_keydown(View * v, GLV& glv) {
   case 15:
     playhead += 250*TMUL;
     break;
+  case 8: // backspace
+    delete_selected_regions();
+    break;
   }
 }
 
@@ -403,9 +480,9 @@ void update_ui() {
       int x = (int)(250.0*zoom_x*bpm_factor*i);
       View* l = new View(Rect(x,0,1,win_h));
       if (i%4>0) {
-        l->cloneStyle().colors().set(Color(0.3,0.3,0.3,0.5), 1.0);
+        l->cloneStyle().colors().set(Color(1,1,1,0.1), 1.0);
       } else {
-        l->cloneStyle().colors().set(Color(0.5,0.5,0.5,0.75), 1.0);
+        l->cloneStyle().colors().set(Color(1,1,1,0.2), 1.0);
       }
       l->disable(DrawBack);
       grid_lines.push_back(l);
@@ -449,11 +526,13 @@ void update_ui() {
     bpm_dialer->on(Event::KeyUp, on_bpm_keyup);
     bpm_dialer->on(Event::MouseUp, on_bpm_keyup);
     
+    loop_start_marker->on(Event::MouseDown, on_loop_start_init_drag);
     loop_start_marker->on(Event::MouseDrag, on_loop_start_drag);
+    loop_end_marker->on(Event::MouseDown, on_loop_end_init_drag);
     loop_end_marker->on(Event::MouseDrag, on_loop_end_drag);
   } else {
-    loop_start_marker->left(loop_start_point/TMUL*zoom_x*bpm_factor);
-    loop_end_marker->left(loop_end_point/TMUL*zoom_x*bpm_factor);
+    loop_start_marker->left(loop_start_point*zoom_x*bpm_factor);
+    loop_end_marker->left(loop_end_point*zoom_x*bpm_factor);
   }
 
   if (!playhead_view) {
@@ -467,29 +546,28 @@ void update_ui() {
   }
   
   int i=0;
-  for (Track& t : p.tracks) {
-    if (!t.view) {
-      printf("!t.view: %x\n",t.view);
-      t.view = new View(Rect(0,track_h*i,win_w*2,track_h));
-      t.view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
-      t.view->disable(DrawBack);
-      *tracks_view << *t.view;
-      printf("track view added: %x\n",&t.view);
+  for (Track* t : p.tracks) {
+    if (!t->view) {
+      t->view = new View(Rect(0,track_h*i,win_w*2,track_h));
+      t->view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
+      t->view->disable(DrawBack);
+      *tracks_view << *t->view;
+      printf("track view added: %x\n",t->view);
     }
     
-    for (Region& r : t.regions) {
-      Rect rect = Rect(r.inpoint*zoom_x*bpm_factor,0,r.length*zoom_x,track_h);
-      if (!r.view) {
-        r.view = new View(rect);
-        r.view->cloneStyle();
-        *t.view << *r.view;
-        r.view->on(Event::MouseDown, on_region_mousedown);
+    for (Region* r : t->regions) {
+      Rect rect = Rect(r->inpoint*zoom_x*bpm_factor,0,r->length*zoom_x,track_h);
+      if (!r->view) {
+        r->view = new View(rect);
+        r->view->cloneStyle();
+        *t->view << *r->view;
+        r->view->on(Event::MouseDown, on_region_mousedown);
       } else {
-        r.view->set(rect);
-        if (r.selected) {
-          r.view->colors().set(Color(0.2,0.4,1,1.0), 0.8);
+        r->view->set(rect);
+        if (r->selected) {
+          r->view->colors().set(Color(0.2,0.4,1,1.0), 0.8);
         } else {
-          r.view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
+          r->view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
         }
       }
     }
@@ -503,11 +581,11 @@ Cell* add_instrument(Cell* args, Cell* env) {
   int id = car(args)->value;
   char* code = (char*)(car(cdr(args))->addr);
 
-  Instrument i = {
+  Instrument* i = new Instrument {
     code
   };
   
-  i.lyd = lyd_compile(lyd, code);
+  i->lyd = lyd_compile(lyd, code);
   active_project.instruments.push_back(i);
 
   printf("add_instrument: %d %s\n",id,code);
@@ -520,7 +598,7 @@ Cell* add_audio_track(Cell* args, Cell* env) {
 
   printf("add_audio_track: %d %s\n",id,name);
   
-  Track t = {id, TRACK_AUDIO, name};
+  Track* t = new Track {id, TRACK_AUDIO, name};
   
   active_project.tracks.push_back(t);
   return alloc_nil();
@@ -562,8 +640,8 @@ Cell* add_region(Cell* args, Cell* env) {
   int duration = car(args)->value;
 
   Track* track;
-  for (Track& t : active_project.tracks) {
-    if (t.id == track_id) track = &t;
+  for (Track* t : active_project.tracks) {
+    if (t->id == track_id) track = t;
   }
   if (!track) {
     printf("(region-sample) invalid track id %d\n",id);
@@ -572,7 +650,7 @@ Cell* add_region(Cell* args, Cell* env) {
 
   printf("add_region: %d\n",id);
   
-  Region r = {id,
+  Region* r = new Region {id,
               track_id,
               0,
               inpoint,
@@ -627,6 +705,20 @@ void ui_update_task() {
   }
 }
 
+void get_windowsize_x11(int* w, int* h) {
+  Display* pdsp = NULL;
+  XID wid = 0;
+  XWindowAttributes xw_attr;
+
+  pdsp = XOpenDisplay(NULL);
+  wid = DefaultRootWindow(pdsp);
+  Status ret = XGetWindowAttributes(pdsp, wid, &xw_attr);
+  *w = xw_attr.width;
+  *h = xw_attr.height;
+
+  XCloseDisplay(pdsp);
+}
+
 int main(int argc, char **argv) {
   lyd_set_wave_handler(lyd, wave_handler, NULL);
   
@@ -634,6 +726,11 @@ int main(int argc, char **argv) {
   
   win_w = 1600;
   win_h = 768;
+
+  get_windowsize_x11(&win_w, &win_h);
+  win_h/=2;
+  win_w-=100;
+  
   track_h = 100;
 
   load_project_file();
@@ -650,7 +747,7 @@ int main(int argc, char **argv) {
   glv_root.on(Event::KeyRepeat, on_root_keydown);
   //glv_root.enable(Controllable | HitTest);
   
-  Window win(win_w, win_h, "mnt produce", &glv_root);
+  glv::Window win(win_w, win_h, "mnt produce", &glv_root);
 
   std::thread t1(ui_update_task);
   std::thread t2(audio_task);
