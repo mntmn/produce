@@ -628,12 +628,10 @@ void ui_update_task() {
 }
 
 int main(int argc, char **argv) {
-
   lyd_set_wave_handler(lyd, wave_handler, NULL);
   
   init_lisp_funcs();
   
-	// Create the Views
   win_w = 1600;
   win_h = 768;
   track_h = 100;
@@ -641,15 +639,6 @@ int main(int argc, char **argv) {
   load_project_file();
 
   printf("Tracks: %d\n", active_project.tracks.size());
-
-	// Set color styles
-	//glv.cloneStyle().colors().set(StyleColor::WhiteOnBlack);
-	//tracks_view.colors().set(Color(0.2,0.4,1,0.8), 0.3);
-  
-	// Disable some of the default View properties
-	/*v2.disable(DrawBorder);
-	v12.disable(FocusHighlight);
-	*/
 
   update_ui();
 
@@ -661,7 +650,7 @@ int main(int argc, char **argv) {
   glv_root.on(Event::KeyRepeat, on_root_keydown);
   //glv_root.enable(Controllable | HitTest);
   
-	Window win(win_w, win_h, "mnt produce", &glv_root);
+  Window win(win_w, win_h, "mnt produce", &glv_root);
 
   std::thread t1(ui_update_task);
   std::thread t2(audio_task);
