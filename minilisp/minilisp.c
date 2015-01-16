@@ -208,6 +208,21 @@ Cell* apply_load(Cell* lambda, Cell* args, Cell* env) {
   return result_cell;
 }
 
+Cell* apply_save(Cell* lambda, Cell* args, Cell* env) {
+  Cell* path = eval(car(args), env);
+  if (path->tag != TAG_STR) return alloc_error(ERR_INVALID_PARAM_TYPE);
+  Cell* obj = eval(car(cdr(args)), env);
+  if (obj->tag != TAG_STR && obj->tag != TAG_BYTES) return alloc_error(ERR_INVALID_PARAM_TYPE);
+  
+  FILE* f = fopen(path->addr,"wb");
+  if (!f) return alloc_error(ERR_FORBIDDEN);
+
+  int bytes_written = fwrite(obj->addr, 1, obj->size, f);
+  fclose(f);
+
+  return alloc_int(bytes_written);
+}
+
 Cell* apply_read(Cell* lambda, Cell* args, Cell* env) {
   Cell* str = eval(car(args), env);
   if (str->tag != TAG_STR) return alloc_error(ERR_INVALID_PARAM_TYPE);
@@ -335,6 +350,24 @@ Cell* apply_list(Cell* args, Cell* env) {
   cur = cdr(res);
   free(res);
   return cur;
+}
+
+Cell* apply_list_append(Cell* args, Cell* env) {
+  // TODO: both have to be conses
+
+  Cell* c;
+  Cell* new_list = alloc_nil();
+  Cell* list_a;
+  while ((list_a = car(args))) {
+    Cell* evd_list = eval(list_a, env);
+    
+    while ((c = car(evd_list))) {
+      new_list = append(c, new_list);
+      evd_list = cdr(evd_list);
+    }
+    args = cdr(args);
+  }
+  return new_list;
 }
 
 Cell* apply_map(Cell* op, Cell* args, Cell* env) {
@@ -472,6 +505,9 @@ Cell* apply(Cell* lambda, Cell* args, Cell* env) {
 
       case BUILTIN_LOAD:
         return apply_load(lambda, args, env);
+        
+      case BUILTIN_SAVE:
+        return apply_save(lambda, args, env);
 
       case BUILTIN_READ:
         return apply_read(lambda, args, env);
@@ -504,6 +540,12 @@ Cell* apply(Cell* lambda, Cell* args, Cell* env) {
       case BUILTIN_CONS:
         return alloc_cons(eval(car(args), env), eval(car(cdr(args)), env));
 
+      case BUILTIN_APPEND:
+        return apply_list_append(alloc_cons(apply_list_append(args, env), alloc_nil()), env);
+
+      case BUILTIN_REVERSE:
+        return apply_list_append(args, env);
+                
       case BUILTIN_LEN: {
         Cell* vec = eval(car(args), env);
         if (!vec || (vec->tag!=TAG_BYTES && vec->tag!=TAG_SYM && vec->tag!=TAG_STR)) return alloc_error(ERR_INVALID_PARAM_TYPE);
@@ -563,6 +605,9 @@ Cell* apply(Cell* lambda, Cell* args, Cell* env) {
         
         Cell* lmb = alloc_lambda(args);
         return lmb;
+      }
+      case BUILTIN_EVAL: {
+        return eval(eval(car(args), env), env);
       }
       case BUILTIN_ALIEN: {
         alien_func f = (alien_func)lambda->next;
@@ -680,7 +725,7 @@ void dump(Cell* expr) {
 Cell* eval(Cell* expr, Cell* env) {
   eval_depth++;
 
-  //printf("eval %p\n",expr);
+  //printf("eval %p expr:\n",expr);
   //dump(expr);
 
   if (eval_depth>MAX_EVAL_DEPTH) {
@@ -692,6 +737,8 @@ Cell* eval(Cell* expr, Cell* env) {
     eval_depth--;
     return 0;
   }
+
+  //printf("expr tag: %d\n",expr->tag);
 
   if (expr->tag == TAG_INT || expr->tag == TAG_ERROR || expr->tag == TAG_BYTES) {
     eval_depth--;
@@ -707,6 +754,9 @@ Cell* eval(Cell* expr, Cell* env) {
     }
     Cell* op = car(expr);
 
+    //printf("eval op:\n");
+    //dump(op);
+
     if (!op) {
       printf("error: trying to evaluate null\n");
       exit(0);
@@ -720,6 +770,9 @@ Cell* eval(Cell* expr, Cell* env) {
     } else {
       //printf("ERROR: cannot apply %p / %d\n\n",op,op->tag);
     }
+  } else if (expr->tag == TAG_LAMBDA) {
+    eval_depth--;
+    return apply(expr, NULL, env);
   }
   eval_depth--;
   return expr;
@@ -957,11 +1010,10 @@ char* write_(Cell* cell, char* buffer, int in_list, int bufsize) {
   } else if (cell->tag == TAG_BIGNUM) {
     snprintf(buffer, bufsize, "%s", (char*)cell->addr);
   } else if (cell->tag == TAG_LAMBDA) {
-    printf("lambda\n");
     char tmpr[TMP_BUF_SIZE];
-    snprintf(buffer, bufsize, "(proc %s)", write_(cell->next, tmpr, 0, TMP_BUF_SIZE));
+    snprintf(buffer, bufsize, "<proc %s>", write_(cell->next, tmpr, 0, TMP_BUF_SIZE));
   } else if (cell->tag == TAG_BUILTIN) {
-    snprintf(buffer, bufsize, "(op %lld)", cell->value);
+    snprintf(buffer, bufsize, "<op %lld>", cell->value);
   } else if (cell->tag == TAG_ERROR) {
     switch (cell->value) {
       case ERR_SYNTAX: sprintf(buffer, "<e0:syntax error.>"); break;
@@ -1023,6 +1075,8 @@ void init_lisp() {
   globals = append(alloc_cons(alloc_sym("type"),  alloc_builtin(BUILTIN_TYPE)), globals);
   globals = append(alloc_cons(alloc_sym("list"),  alloc_builtin(BUILTIN_LIST)), globals);
   globals = append(alloc_cons(alloc_sym("load"),  alloc_builtin(BUILTIN_LOAD)), globals);
+  globals = append(alloc_cons(alloc_sym("save"),  alloc_builtin(BUILTIN_SAVE)), globals);
+  globals = append(alloc_cons(alloc_sym("eval"),  alloc_builtin(BUILTIN_EVAL)), globals);
   globals = append(alloc_cons(alloc_sym("str"),  alloc_builtin(BUILTIN_STR)), globals);
   globals = append(alloc_cons(alloc_sym("debug"),  alloc_builtin(BUILTIN_DEBUG)), globals);
   globals = append(alloc_cons(alloc_sym("read"),  alloc_builtin(BUILTIN_READ)), globals);
@@ -1031,4 +1085,6 @@ void init_lisp() {
   globals = append(alloc_cons(alloc_sym("filter"),  alloc_builtin(BUILTIN_FILTER)), globals);
   globals = append(alloc_cons(alloc_sym("concat"),  alloc_builtin(BUILTIN_CONCAT)), globals);
   globals = append(alloc_cons(alloc_sym("substr"),  alloc_builtin(BUILTIN_SUBSTR)), globals);
+  globals = append(alloc_cons(alloc_sym("append"),  alloc_builtin(BUILTIN_APPEND)), globals);
+  globals = append(alloc_cons(alloc_sym("reverse"),  alloc_builtin(BUILTIN_REVERSE)), globals);
 }

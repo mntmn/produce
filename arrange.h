@@ -8,7 +8,6 @@
 
 using namespace glv;
 
-
 enum track_type_t {
   TRACK_AUDIO,
   TRACK_MIDI

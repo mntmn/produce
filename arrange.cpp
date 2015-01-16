@@ -6,8 +6,6 @@
 #include <time.h>
 #include <math.h>
 
-#include <X11/Xlib.h>
-
 #include <thread>
 #include <vector>
 #include <fstream>
@@ -20,7 +18,16 @@ extern "C" {
 #include "minilisp/reader.h"
 }
 
+extern "C" void init_midi();
+extern "C" void send_midi();
+extern "C" void queue_midi_note(int note_on);
+
 using namespace std;
+
+enum instrument_type_t {
+  I_SAMPLE,
+  I_MIDI
+};
 
 struct Note {
   int freq;
@@ -30,14 +37,16 @@ struct Note {
 };
 
 struct Instrument {
+  int id;
+  instrument_type_t type;
+  char* path;
   char* code; // instrument source code
   LydProgram* lyd; // compiled instrument
 };
 
-struct Region {
+struct MPRegion {
   int id;
   int track_id;
-  int type;
   long inpoint;
   long length;
   int instrument_id;
@@ -45,6 +54,7 @@ struct Region {
   vector<Note> notes;
 
   bool fired; // fired in current loop?
+  bool stopped; // note off sent in current loop?
   View* view;
   
   Instrument* instr; // direct pointer to instrument
@@ -59,12 +69,12 @@ struct Track {
   
   View* view;
 
-  vector<Region*> regions;
+  vector<MPRegion*> regions;
 };
 
 struct Project {
   vector<Track*> tracks;
-  vector<Region*> regions;  
+  vector<MPRegion*> regions;  
   vector<Instrument*> instruments;
 };
 
@@ -113,8 +123,9 @@ static long loop_end_point = 1000;
 
 void clear_fired_regions() {
   for (Track* t : active_project.tracks) {
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       r->fired = false;
+      r->stopped = false;
     }
   }
 }
@@ -163,18 +174,28 @@ void audio_task()
       //printf("elaps: %ld\n",elaps);
 
       for (Track* t : active_project.tracks) {
-        for (Region* r : t->regions) {
+        for (MPRegion* r : t->regions) {
           long rstart = (long)r->inpoint * TMUL * bpm_factor;
           long rstop  = rstart + (long)r->length * TMUL * bpm_factor;
+          Instrument* instr = active_project.instruments[r->instrument_id];
+            
           if (!r->fired && playhead>=rstart && playhead<rstop) {
             printf("r: %d rstart: %ld at %ld\n",r->id,rstart,playhead);
-            
+
             //printf("trigger %d at %d",ri,elaps);
             r->fired = true;
-            LydProgram* instr = active_project.instruments[r->instrument_id]->lyd;
-            //printf("r: %d instr: %d %x\n",r.id,r.sample_id,instr);
-            LydVoice* voice = lyd_voice_new(lyd, instr, 0, voice_tag++);
-            lyd_voice_set_duration(lyd, voice, 0.1);
+            if (instr->type == I_SAMPLE) {
+              LydProgram* prog = instr->lyd;
+              LydVoice* voice = lyd_voice_new(lyd, prog, 0, voice_tag++);
+              lyd_voice_set_duration(lyd, voice, 0.1);
+            } else {
+              queue_midi_note(1);
+            }
+          } else if (r->fired && !r->stopped && playhead>rstop) {
+            r->stopped = true;
+            if (instr->type == I_MIDI) {
+              queue_midi_note(0);
+            }
           }
         }
       }
@@ -209,7 +230,7 @@ void update_model_from_ui() {
   Project& p = active_project;
   
   for (Track* t : p.tracks) {
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       if (r->view) {
         // move ui updates to model
         r->inpoint = (long)r->view->left()/zoom_x;
@@ -246,9 +267,9 @@ void toggle_playback() {
   playback_enabled = 1-playback_enabled;
 }
 
-Region* view_to_region(View* v) {
+MPRegion* view_to_region(View* v) {
   for (Track* t : active_project.tracks) {
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       if (r->view == v) {
         return r;
       }
@@ -257,9 +278,9 @@ Region* view_to_region(View* v) {
   return NULL;
 }
 
-Track* region_to_track(Region* r_needle) {
+Track* region_to_track(MPRegion* r_needle) {
   for (Track* t : active_project.tracks) {
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       if (r == r_needle) {
         return t;
       }
@@ -268,10 +289,10 @@ Track* region_to_track(Region* r_needle) {
   return NULL;
 }
 
-vector<Region*> selected_regions() {
-  vector<Region*> res;
+vector<MPRegion*> selected_regions() {
+  vector<MPRegion*> res;
   for (Track* t : active_project.tracks) {
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       if (r->selected) {
         res.push_back(r);
       }
@@ -281,20 +302,20 @@ vector<Region*> selected_regions() {
 }
 
 void deselect_regions() {
-  vector<Region*> regions = selected_regions();
+  vector<MPRegion*> regions = selected_regions();
 
-  for (Region* r : regions) {
+  for (MPRegion* r : regions) {
     r->selected = false;
   }
 }
 
 void delete_selected_regions() {
-  vector<Region*> regions = selected_regions();
+  vector<MPRegion*> regions = selected_regions();
 
-  for (Region* r : regions) {
+  for (MPRegion* r : regions) {
     Track* t = region_to_track(r);
     if (t) {
-      vector<Region*>& v = t->regions;
+      vector<MPRegion*>& v = t->regions;
       r->view->remove();
       v.erase(remove(begin(v), end(v), r), end(v));
     }
@@ -321,13 +342,13 @@ bool on_root_mousedown(View * v, GLV& glv) {
 }
 
 bool on_region_mousedown(View * v, GLV& glv) {
-  Region* r = view_to_region(v);
+  MPRegion* r = view_to_region(v);
   printf("on_region_mousedown: %x\n",r);
   if (r) {
-    vector<Region*> regions = selected_regions();
+    vector<MPRegion*> regions = selected_regions();
     
     if (!glv.keyboard().shift() && !glv.keyboard().ctrl()) {
-      for (Region* r : regions) {
+      for (MPRegion* r : regions) {
         r->selected = false;
       }
     }
@@ -336,11 +357,11 @@ bool on_region_mousedown(View * v, GLV& glv) {
       
     if (glv.keyboard().ctrl()) {
       // clone region
-      for (Region* sr : regions) {
+      for (MPRegion* sr : regions) {
         Track* t = region_to_track(sr);
         if (t) {
-          Region* dup = new Region;
-          memcpy(dup, sr, sizeof(Region));
+          MPRegion* dup = new MPRegion;
+          memcpy(dup, sr, sizeof(MPRegion));
           dup->view = NULL;
           dup->selected = true;
           t->regions.push_back(dup);
@@ -355,7 +376,7 @@ bool on_region_mousedown(View * v, GLV& glv) {
     drag_x1 = glv.mouse().x();
     drag_y1 = glv.mouse().y();
 
-    for (Region* sr : selected_regions()) {
+    for (MPRegion* sr : selected_regions()) {
       sr->_prev_inpoint = sr->inpoint; // save state when we started dragging
     }
   }
@@ -420,8 +441,8 @@ bool on_root_mousemove(View* v, GLV& glv) {
   //printf("root_mousemove %d\n",mouse_state);
   
   if (mouse_state == MS_MOVING) {
-    vector<Region*> regions = selected_regions();
-    for (Region* r : regions) {
+    vector<MPRegion*> regions = selected_regions();
+    for (MPRegion* r : regions) {
       r->inpoint = snap_time(r->_prev_inpoint + mouse_dx/zoom_x/bpm_factor);
     }
   }
@@ -432,12 +453,25 @@ bool on_bpm_keyup(View * v, GLV& glv) {
   bpm = bpm_dialer->getValue();
 }
 
+
+bool external_edit_selected_region() {
+  vector<MPRegion*> rs = selected_regions();
+  MPRegion* r = rs[0];
+  Instrument* instr = active_project.instruments[r->instrument_id];
+  string cmd = "audacity \""+string(instr->path)+"\"";
+  system(cmd.c_str());
+}
+
 bool on_root_keydown(View * v, GLV& glv) {
   // TODO: bind to lisp
   
   char k = glv.keyboard().key();
   printf("key: %d\n",k);
   switch (k) {
+  case 'e':
+    // open region in audio editor
+    external_edit_selected_region();
+    break;
   case ' ':
     toggle_playback();
     break;
@@ -457,6 +491,11 @@ bool on_root_keydown(View * v, GLV& glv) {
   case 8: // backspace
     delete_selected_regions();
     break;
+  default: {
+    char buf[1024];
+    sprintf(buf,"(handle-key \"%c\")",k);
+    eval(read_string(buf), get_globals());
+  }
   }
 }
 
@@ -492,9 +531,11 @@ void update_ui() {
     glv_root << tracks_view;
   } else {
     int i = 0;
+    tracks_view->height(win_h);
     for (View* l : grid_lines) {
       int x = (int)(250.0*zoom_x*bpm_factor*(i++));
       l->left(x);
+      l->height(win_h);
     }
   }
 
@@ -543,6 +584,7 @@ void update_ui() {
   } else {
     float bpm_factor = 240.0/bpm;
     playhead_view->left((float)(playhead/TMUL)*zoom_x);
+    playhead_view->height(win_h);
   }
   
   int i=0;
@@ -555,7 +597,7 @@ void update_ui() {
       printf("track view added: %x\n",t->view);
     }
     
-    for (Region* r : t->regions) {
+    for (MPRegion* r : t->regions) {
       Rect rect = Rect(r->inpoint*zoom_x*bpm_factor,0,r->length*zoom_x,track_h);
       if (!r->view) {
         r->view = new View(rect);
@@ -579,16 +621,30 @@ void update_ui() {
 
 Cell* add_instrument(Cell* args, Cell* env) {
   int id = car(args)->value;
-  char* code = (char*)(car(cdr(args))->addr);
+  instrument_type_t type = (instrument_type_t)car(cdr(args))->value;
+  char* path = (char*)(car(cdr(cdr(args)))->addr);
 
+  char* code = NULL;
+
+  if (type == I_SAMPLE) {
+    code = (char*)malloc(strlen(path)+128);
+    sprintf(code,"wave('%s') * 0.5",path);
+  }
+  
   Instrument* i = new Instrument {
+    id,
+    type,
+    path,
     code
   };
-  
-  i->lyd = lyd_compile(lyd, code);
+
+  if (code) {
+    i->lyd = lyd_compile(lyd, code);
+
+  }
   active_project.instruments.push_back(i);
 
-  printf("add_instrument: %d %s\n",id,code);
+  printf("add_instrument: %d %s\n",id,path);
   return alloc_nil();
 }
 
@@ -650,9 +706,8 @@ Cell* add_region(Cell* args, Cell* env) {
 
   printf("add_region: %d\n",id);
   
-  Region* r = new Region {id,
+  MPRegion* r = new MPRegion {id,
               track_id,
-              0,
               inpoint,
               duration,
               sample_id};
@@ -661,37 +716,90 @@ Cell* add_region(Cell* args, Cell* env) {
   return alloc_nil();
 }
 
+Cell* lisp_dump(Cell* expr, Cell* env) {
+  char buf[1024];
+  lisp_write(car(expr), buf, 1024);
+  printf("%s\n",buf);
+  return alloc_nil();
+}
+
+Cell* lisp_all_instruments(Cell* args, Cell* env) {
+  Cell* r_list = alloc_nil();
+  for (Instrument* i : active_project.instruments) {
+    char buf[1024];
+    snprintf(buf,1023,"(instrument %d %d \"%s\")",i->id,i->type,i->path);
+    Cell* r_cell = read_string(buf);
+    r_list = append(r_cell, r_list);
+  }
+  return r_list;
+}
+
+Cell* lisp_all_tracks(Cell* args, Cell* env) {
+  Cell* r_list = alloc_nil();
+  for (Track* t : active_project.tracks) {
+    char buf[1024];
+    snprintf(buf,1023,"(track %d \"%s\")",t->id,t->title.c_str());
+    Cell* r_cell = read_string(buf);
+    r_list = append(r_cell, r_list);
+  }
+  return r_list;
+}
+
+Cell* lisp_all_regions(Cell* args, Cell* env) {
+  Cell* r_list = alloc_nil();
+  for (Track* t : active_project.tracks) {
+    for (MPRegion* r : t->regions) {
+      char buf[1024];
+      snprintf(buf,1023,"(region %d %d %d %d %d)",r->id,r->track_id,r->instrument_id,r->inpoint,r->length);
+      Cell* r_cell = read_string(buf);
+      r_list = append(r_cell, r_list);
+    }
+  }
+  return r_list;
+}
+
 void init_lisp_funcs() {
   init_lisp();
   
   register_alien_func("instrument",add_instrument);
   register_alien_func("track",add_audio_track);
   register_alien_func("region",add_region);
+  
+  register_alien_func("all-instruments",lisp_all_instruments);
+  register_alien_func("all-tracks",lisp_all_tracks);
+  register_alien_func("all-regions",lisp_all_regions);
+  
+  register_alien_func("print",lisp_dump);
 }
 
 #define LOAD_BUFFER_SIZE 1024*1024
-Cell* load_project_file() {
+Cell* eval_lisp_file(char* filename) {
   Cell* evaled = alloc_nil();
   
   char* buffer = (char*)malloc(LOAD_BUFFER_SIZE);
   memset(buffer,0,LOAD_BUFFER_SIZE);
   
   FILE* f;
-  if ((f = fopen("project.l","r"))) {
+  if ((f = fopen(filename,"r"))) {
     int l = fread(buffer, 1, LOAD_BUFFER_SIZE, f);
     fclose(f);
 
     if (l) {
-      printf("[boot file bytes read: %d]\r\n\n",l);
       Cell* expr = read_string(buffer);
       evaled = alloc_clone(eval(expr, get_globals()), 0);
-
-      //eval_project(expr);
     }
   }
 
   free(buffer);
   return evaled;
+}
+
+Cell* load_init_file() {
+  return eval_lisp_file("init.l");
+}
+
+Cell* load_project_file() {
+  return eval_lisp_file("project.l");
 }
 
 void ui_update_task() {
@@ -705,35 +813,32 @@ void ui_update_task() {
   }
 }
 
-void get_windowsize_x11(int* w, int* h) {
-  Display* pdsp = NULL;
-  XID wid = 0;
-  XWindowAttributes xw_attr;
-
-  pdsp = XOpenDisplay(NULL);
-  wid = DefaultRootWindow(pdsp);
-  Status ret = XGetWindowAttributes(pdsp, wid, &xw_attr);
-  *w = xw_attr.width;
-  *h = xw_attr.height;
-
-  XCloseDisplay(pdsp);
-}
+extern void x11_stuff_init();
+extern void x11_exit_cleanup();
 
 int main(int argc, char **argv) {
   lyd_set_wave_handler(lyd, wave_handler, NULL);
   
   init_lisp_funcs();
-  
-  win_w = 1600;
-  win_h = 768;
 
-  get_windowsize_x11(&win_w, &win_h);
-  win_h/=2;
-  win_w-=100;
+  init_midi();
   
-  track_h = 100;
+  win_w = 1800;
+  win_h = 1000;
 
-  load_project_file();
+  x11_stuff_init();
+  //get_windowsize_x11(&win_w, &win_h);
+  //win_h/=2;
+  //win_w-=100;
+  
+  atexit(x11_exit_cleanup);
+
+  //printf("XdndAware: %d\n",XdndAware);
+  
+  track_h = 50;
+
+  load_init_file();
+  //load_project_file();
 
   printf("Tracks: %d\n", active_project.tracks.size());
 

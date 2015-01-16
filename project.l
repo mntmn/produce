@@ -1,16 +1,15 @@
-(let ()
-(instrument 0 "wave('/media/storage/samples/clean/pend_kick-x-01.wav') * 0.8")
-(instrument 1 "wave('/media/storage/samples/clean/pend_sn-x-04.wav') * 0.5")
-(instrument 2 "wave('/media/storage/samples/clean/pend_hats-x-01.wav')")
-(instrument 4 "sin(hz=260.0) * adsr(0.12, 0.12, 0.7, 0.30) * 40.0")
-(instrument 3 "wave('/media/storage/samples/clean/portis_bass.wav')")
+(let (smp 0 mid 1)
+  
+(instrument 0 smp "/media/storage/samples/clean/pend_kick-x-01.wav")
+(instrument 1 smp "/media/storage/samples/clean/pend_sn-x-04.wav")
+(instrument 2 smp "/media/storage/samples/clean/pend_hats-x-01.wav")
+(instrument 3 mid "")
 
 (track 0 "kicks")
 (track 1 "snares")
 (track 2 "hats")
-(track 3 "beep")
-(track 4 "beep")
-
+(track 3 "midi1")
+(track 4 "guitar")
 
 (region 0 0 0  0   50)
 (region 1 0 0  500 50)
@@ -19,9 +18,8 @@
 (region 3 1 1  750 50)
 (region 4 1 1  900 50)
 
-(region 5 3 3  250 100)
-(region 5 3 3  500 100)
-(region 6 4 4  250 100)
+(region 6 2 2  500 400)
 
+(region 5 3 3  250 100)
 )
 
