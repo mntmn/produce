@@ -11,15 +11,15 @@
                                                 (quote (let (project-version 1)))
                                                 (reverse (all-instruments)) (reverse (all-tracks)) (reverse (all-regions)))))))
 
-  (def key-bindings (list                 
-                     (list "l" (fn () (project-load "project2.l")))
+  (def key-bindings (quote                 
+                     (("l" (project-load "project2.l"))
 
-                     (list "s" (fn () (project-save "project2.l")))
+                     ("s" (project-save "project2.l"))
                      
-                     (list "t" (fn () (let (tid fresh-track-id)
-                                        (track tid "untitled track"))))
-                     (list "x" (fn () (print "foobar!")))
-                     ))
+                     ("t" (let (tid fresh-track-id)
+                                        (track tid "untitled track")))
+                     ("x" (print "foobar!"))
+                     )))
   
   (def handle-key (fn (sym) (let ()
                               (print (list "handle-key" sym))
