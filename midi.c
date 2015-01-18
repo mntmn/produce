@@ -23,8 +23,8 @@ static int note_queued_on = 0;
 
 void* port_buffer;
 
-void queue_midi_note(int note_on) {
-  note_queued = 1;
+void queue_midi_note(int note, int note_on) {
+  note_queued = note;
   note_queued_on = note_on;
 }
 
@@ -42,7 +42,7 @@ void send_midi(int note_on) {
   } else {
     ev.data[0] = MIDI_NOTE_OFF + channel;
   }
-  ev.data[1] = 48; // c3
+  ev.data[1] = note_queued; // c3
   ev.data[2] = 127; // velocity
 
   if (port_buffer == NULL) {

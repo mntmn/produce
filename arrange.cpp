@@ -20,7 +20,7 @@ extern "C" {
 
 extern "C" void init_midi();
 extern "C" void send_midi();
-extern "C" void queue_midi_note(int note_on);
+extern "C" void queue_midi_note(int note, int note_on);
 
 using namespace std;
 
@@ -41,6 +41,7 @@ struct Instrument {
   instrument_type_t type;
   char* path;
   char* code; // instrument source code
+  int note;
   LydProgram* lyd; // compiled instrument
 };
 
@@ -66,6 +67,9 @@ struct Track {
   int id;
   track_type_t type;
   string title;
+  int r;
+  int g;
+  int b;
   
   View* view;
 
@@ -74,7 +78,6 @@ struct Track {
 
 struct Project {
   vector<Track*> tracks;
-  vector<MPRegion*> regions;  
   vector<Instrument*> instruments;
 };
 
@@ -189,12 +192,12 @@ void audio_task()
               LydVoice* voice = lyd_voice_new(lyd, prog, 0, voice_tag++);
               lyd_voice_set_duration(lyd, voice, 0.1);
             } else {
-              queue_midi_note(1);
+              queue_midi_note(instr->note,1);
             }
           } else if (r->fired && !r->stopped && playhead>rstop) {
             r->stopped = true;
             if (instr->type == I_MIDI) {
-              queue_midi_note(0);
+              queue_midi_note(instr->note,0);
             }
           }
         }
@@ -211,6 +214,7 @@ void audio_task()
 
 GLV glv_root;
 View* tracks_view;
+View* selection_rect;
 vector<View*> grid_lines;
 View* header_view;
 View* playhead_view;
@@ -225,21 +229,6 @@ int win_w;
 int win_h;
 float track_h;
 float zoom_x = 0.5;
-
-void update_model_from_ui() {
-  Project& p = active_project;
-  
-  for (Track* t : p.tracks) {
-    for (MPRegion* r : t->regions) {
-      if (r->view) {
-        // move ui updates to model
-        r->inpoint = (long)r->view->left()/zoom_x;
-        //printf("region %d inpoint: %d\n",r.id,r.inpoint);
-      }
-    }
-  }
-}
-
 
 void zoom_in_x() {
   zoom_x *= 2.0;
@@ -261,6 +250,7 @@ int mouse_dx = 0;
 int mouse_dy = 0;
 long drag_x1 = 0;
 long drag_y1 = 0;
+View* hover_track_view = NULL;
 
 void toggle_playback() {
   clear_fired_regions();
@@ -273,6 +263,15 @@ MPRegion* view_to_region(View* v) {
       if (r->view == v) {
         return r;
       }
+    }
+  }
+  return NULL;
+}
+
+Track* view_to_track(View* v) {
+  for (Track* t : active_project.tracks) {
+    if (t->view == v) {
+      return t;
     }
   }
   return NULL;
@@ -322,6 +321,22 @@ void delete_selected_regions() {
   }
 }
 
+void select_regions_in_rect(Rect& rect) {
+  for (Track* t : active_project.tracks) {
+    for (MPRegion* r : t->regions) {
+      if (r->view) {
+        Rect shifted = Rect(*(r->view));
+        shifted.posAdd(t->view->left(), t->view->top());
+      
+        if (shifted.intersects(rect)) {
+          printf("intersects: %f %f %f %f\n",r->view->left(),r->view->top(),r->view->width(),r->view->height());
+          r->selected = true;
+        }
+      }
+    }
+  }
+}
+
 bool on_toolbar_mouseup(View* v, GLV& glv) {
   toggle_playback();
   return false;
@@ -329,8 +344,14 @@ bool on_toolbar_mouseup(View* v, GLV& glv) {
 
 bool on_root_mouseup(View * v, GLV& glv) {
   //printf("on_root_mouseup\n");
+  
+  if (mouse_state == MS_SELECTING) {
+    select_regions_in_rect(*selection_rect);
+    selection_rect->width(0);
+    selection_rect->height(0);
+  }
   mouse_state = MS_IDLE;
-  //update_model_from_ui();
+
   return false;
 }
 
@@ -342,12 +363,15 @@ bool on_root_mousedown(View * v, GLV& glv) {
 }
 
 bool on_region_mousedown(View * v, GLV& glv) {
+
+  mouse_state = MS_MOVING;
+  
   MPRegion* r = view_to_region(v);
   printf("on_region_mousedown: %x\n",r);
   if (r) {
     vector<MPRegion*> regions = selected_regions();
     
-    if (!glv.keyboard().shift() && !glv.keyboard().ctrl()) {
+    if (!glv.keyboard().shift() && !glv.keyboard().ctrl() && regions.size()<2) {
       for (MPRegion* r : regions) {
         r->selected = false;
       }
@@ -434,7 +458,7 @@ bool on_loop_end_drag(View* v, GLV& glv) {
 
 bool on_root_mousemove(View* v, GLV& glv) {
   float bpm_factor = 240.0/bpm;
-  
+
   Mouse m = glv.mouse();
   mouse_dx += m.dx();
 
@@ -453,6 +477,86 @@ bool on_bpm_keyup(View * v, GLV& glv) {
   bpm = bpm_dialer->getValue();
 }
 
+bool on_selection_rect_drag(View* v, GLV& glv) {
+  if (mouse_state == MS_MOVING) return true;
+  
+  float dx = glv.mouse().dx();
+  float dy = glv.mouse().dy();
+
+  mouse_dx += dx;
+  mouse_dy += dy;
+
+  mouse_state = MS_SELECTING;
+  
+  float x,y,w=mouse_dx,h=mouse_dy;
+  
+  if (w<0) {
+    x = drag_x1 + w;
+    w = -w;
+  } else {
+    x = drag_x1;
+    w = w;
+  }
+  
+  if (h<0) {
+    y = drag_y1 + h;
+    h = -h;
+  } else {
+    y = drag_y1;
+    h = h;
+  }
+  
+  selection_rect->set(x,y,w,h);
+  
+  printf("drag %f %f %f %f\n",x,y,w,h);
+
+  return false;
+}
+
+Cell* lisp_add_region_at_mouse(Cell* args, Cell* env) {
+  float bpm_factor = 240.0/bpm;
+  space_t x = glv_root.mouse().x();
+  space_t y = glv_root.mouse().y();
+  
+  hover_track_view = glv_root.findTarget(x, y);
+  printf("hover_track_view: %x\n",hover_track_view);
+  if (!hover_track_view) return alloc_nil();
+
+  // create note
+  Track* t = view_to_track(hover_track_view);
+  if (t) {
+    int inpoint = snap_time(x/zoom_x/bpm_factor);
+    int duration = 50;
+    MPRegion* r = new MPRegion {1,
+                                t->id,
+                                inpoint,
+                                duration,
+                                t->id};
+    t->regions.push_back(r);
+  }
+
+  return alloc_nil();
+}
+
+bool on_track_mousedown(View* v, GLV& glv) {
+  mouse_dx = 0;
+  mouse_dy = 0;
+  drag_x1 = glv.mouse().x() - tracks_view->left();
+  drag_y1 = glv.mouse().y() - tracks_view->top();
+  
+  selection_rect->left(drag_x1);
+  selection_rect->top(drag_y1);
+  selection_rect->width(1);
+  selection_rect->height(1);
+
+  printf("track mousedown %d %d\n",drag_x1,drag_y1);
+
+  if (!glv.keyboard().shift()) {
+    deselect_regions();
+  }
+
+  return false;
+}
 
 bool external_edit_selected_region() {
   vector<MPRegion*> rs = selected_regions();
@@ -463,10 +567,11 @@ bool external_edit_selected_region() {
 }
 
 bool on_root_keydown(View * v, GLV& glv) {
-  // TODO: bind to lisp
-  
   char k = glv.keyboard().key();
-  printf("key: %d\n",k);
+  printf("key: %d %d %d\n",k,glv.keyboard().ctrl(),glv.keyboard().alt());
+
+  // FIXME
+  
   switch (k) {
   case 'e':
     // open region in audio editor
@@ -527,6 +632,14 @@ void update_ui() {
       grid_lines.push_back(l);
       *tracks_view << l;
     }
+
+    selection_rect = new View(Rect(0,0,0,0));
+    selection_rect->cloneStyle().colors().set(Color(1,1,1,0.3), 0.3);
+    
+    tracks_view->on(Event::MouseDown, on_track_mousedown);
+    tracks_view->on(Event::MouseDrag, on_selection_rect_drag);
+
+    *tracks_view << selection_rect;
     
     glv_root << tracks_view;
   } else {
@@ -591,9 +704,14 @@ void update_ui() {
   for (Track* t : p.tracks) {
     if (!t->view) {
       t->view = new View(Rect(0,track_h*i,win_w*2,track_h));
-      t->view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
+
+      // 0.2,0.4,1
+      
+      t->view->cloneStyle().colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0,0.5), 0.5);
       t->view->disable(DrawBack);
+
       *tracks_view << *t->view;
+      
       printf("track view added: %x\n",t->view);
     }
     
@@ -607,9 +725,9 @@ void update_ui() {
       } else {
         r->view->set(rect);
         if (r->selected) {
-          r->view->colors().set(Color(0.2,0.4,1,1.0), 0.8);
+          r->view->colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0, 0.9));
         } else {
-          r->view->colors().set(Color(0.2,0.4,1,0.5), 0.5);
+          r->view->colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0, 0.4));
         }
       }
     }
@@ -623,19 +741,24 @@ Cell* add_instrument(Cell* args, Cell* env) {
   int id = car(args)->value;
   instrument_type_t type = (instrument_type_t)car(cdr(args))->value;
   char* path = (char*)(car(cdr(cdr(args)))->addr);
-
+  int note = 0;
+  
   char* code = NULL;
 
   if (type == I_SAMPLE) {
     code = (char*)malloc(strlen(path)+128);
     sprintf(code,"wave('%s') * 0.5",path);
+  } else {
+    path = "";
+    note = (car(cdr(cdr(args)))->value);
   }
   
   Instrument* i = new Instrument {
     id,
     type,
     path,
-    code
+    code,
+    note
   };
 
   if (code) {
@@ -648,13 +771,33 @@ Cell* add_instrument(Cell* args, Cell* env) {
   return alloc_nil();
 }
 
+Cell* set_regions_length(Cell* args, Cell* env) {
+  int d = car(args)->value;
+
+  vector<MPRegion*> rs = selected_regions();
+
+  for (MPRegion* r : rs) {
+    r->length = d;
+  }
+  return car(args);
+}
+
 Cell* add_audio_track(Cell* args, Cell* env) {
   int id = car(args)->value;
   char* name = (char*)(car(cdr(args))->addr);
+  int r = 5;
+  int g = 5;
+  int b = 5;
+
+  if (car(cdr(cdr(args)))) {
+    r = (car(cdr(cdr(args))))->value;
+    g = (car(cdr(cdr(cdr(args)))))->value;
+    b = (car(cdr(cdr(cdr(cdr(args))))))->value;
+  }
 
   printf("add_audio_track: %d %s\n",id,name);
   
-  Track* t = new Track {id, TRACK_AUDIO, name};
+  Track* t = new Track {id, TRACK_AUDIO, name, r, g, b};
   
   active_project.tracks.push_back(t);
   return alloc_nil();
@@ -727,7 +870,11 @@ Cell* lisp_all_instruments(Cell* args, Cell* env) {
   Cell* r_list = alloc_nil();
   for (Instrument* i : active_project.instruments) {
     char buf[1024];
-    snprintf(buf,1023,"(instrument %d %d \"%s\")",i->id,i->type,i->path);
+    if (i->type == I_SAMPLE) {
+      snprintf(buf,1023,"(instrument %d %d \"%s\")",i->id,i->type,i->path);
+    } else {
+      snprintf(buf,1023,"(instrument %d %d %d)",i->id,i->type,i->note);
+    }
     Cell* r_cell = read_string(buf);
     r_list = append(r_cell, r_list);
   }
@@ -738,7 +885,7 @@ Cell* lisp_all_tracks(Cell* args, Cell* env) {
   Cell* r_list = alloc_nil();
   for (Track* t : active_project.tracks) {
     char buf[1024];
-    snprintf(buf,1023,"(track %d \"%s\")",t->id,t->title.c_str());
+    snprintf(buf,1023,"(track %d \"%s\" %d %d %d)",t->id,t->title.c_str(),t->r,t->g,t->b);
     Cell* r_cell = read_string(buf);
     r_list = append(r_cell, r_list);
   }
@@ -768,6 +915,10 @@ void init_lisp_funcs() {
   register_alien_func("all-instruments",lisp_all_instruments);
   register_alien_func("all-tracks",lisp_all_tracks);
   register_alien_func("all-regions",lisp_all_regions);
+
+  register_alien_func("add-region-at-mouse",lisp_add_region_at_mouse);
+
+  register_alien_func("set-regions-length",set_regions_length);
   
   register_alien_func("print",lisp_dump);
 }
@@ -835,7 +986,7 @@ int main(int argc, char **argv) {
 
   //printf("XdndAware: %d\n",XdndAware);
   
-  track_h = 50;
+  track_h = 30;
 
   load_init_file();
   //load_project_file();
@@ -858,6 +1009,9 @@ int main(int argc, char **argv) {
   std::thread t2(audio_task);
   
   playback_enabled = 0;
+
+  // FIXME
+  system("jack_connect produceMidiClient:produceMidiOut bristol:midi_in");
 
   Application::run();
 }
