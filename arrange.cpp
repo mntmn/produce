@@ -228,6 +228,7 @@ NumberDialer* bpm_dialer;
 int win_w;
 int win_h;
 float track_h;
+float scroll_x = 0;
 float zoom_x = 0.5;
 
 void zoom_in_x() {
@@ -236,6 +237,14 @@ void zoom_in_x() {
 
 void zoom_out_x() {
   zoom_x /= 2.0;
+}
+
+void scroll_left() {
+  scroll_x += 250;
+}
+
+void scroll_right() {
+  scroll_x -= 250;
 }
 
 enum mouse_state_t {
@@ -515,7 +524,7 @@ bool on_selection_rect_drag(View* v, GLV& glv) {
 
 Cell* lisp_add_region_at_mouse(Cell* args, Cell* env) {
   float bpm_factor = 240.0/bpm;
-  space_t x = glv_root.mouse().x();
+  space_t x = glv_root.mouse().x() - scroll_x;
   space_t y = glv_root.mouse().y();
   
   hover_track_view = glv_root.findTarget(x, y);
@@ -586,12 +595,18 @@ bool on_root_keydown(View * v, GLV& glv) {
   case '-':
     zoom_out_x();
     break;
-  case 13:
-    // cursor left
+  case ',':
     playhead -= 250*TMUL;
     break;
-  case 15:
+  case '.':
     playhead += 250*TMUL;
+    break;
+  case 13:
+    // cursor left
+    scroll_left();
+    break;
+  case 15:
+    scroll_right();
     break;
   case 8: // backspace
     delete_selected_regions();
@@ -604,7 +619,7 @@ bool on_root_keydown(View * v, GLV& glv) {
   }
 }
 
-static int song_bars = 24;
+static int song_bars = 4*100;
 
 void update_ui() {
   Project& p = active_project;
@@ -624,9 +639,9 @@ void update_ui() {
       int x = (int)(250.0*zoom_x*bpm_factor*i);
       View* l = new View(Rect(x,0,1,win_h));
       if (i%4>0) {
-        l->cloneStyle().colors().set(Color(1,1,1,0.1), 1.0);
+        l->cloneStyle().colors().set(Color(0.9,0.9,1,0.08), 1.0);
       } else {
-        l->cloneStyle().colors().set(Color(1,1,1,0.2), 1.0);
+        l->cloneStyle().colors().set(Color(0.9,0.9,1,0.12), 1.0);
       }
       l->disable(DrawBack);
       grid_lines.push_back(l);
@@ -646,7 +661,7 @@ void update_ui() {
     int i = 0;
     tracks_view->height(win_h);
     for (View* l : grid_lines) {
-      int x = (int)(250.0*zoom_x*bpm_factor*(i++));
+      int x = (int)(scroll_x + 250.0*zoom_x*bpm_factor*(i++));
       l->left(x);
       l->height(win_h);
     }
@@ -685,8 +700,8 @@ void update_ui() {
     loop_end_marker->on(Event::MouseDown, on_loop_end_init_drag);
     loop_end_marker->on(Event::MouseDrag, on_loop_end_drag);
   } else {
-    loop_start_marker->left(loop_start_point*zoom_x*bpm_factor);
-    loop_end_marker->left(loop_end_point*zoom_x*bpm_factor);
+    loop_start_marker->left(scroll_x + loop_start_point*zoom_x*bpm_factor);
+    loop_end_marker->left(scroll_x + loop_end_point*zoom_x*bpm_factor);
   }
 
   if (!playhead_view) {
@@ -696,7 +711,7 @@ void update_ui() {
     glv_root << playhead_view;
   } else {
     float bpm_factor = 240.0/bpm;
-    playhead_view->left((float)(playhead/TMUL)*zoom_x);
+    playhead_view->left(scroll_x + (float)(playhead/TMUL)*zoom_x);
     playhead_view->height(win_h);
   }
   
@@ -707,7 +722,7 @@ void update_ui() {
 
       // 0.2,0.4,1
       
-      t->view->cloneStyle().colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0,0.5), 0.5);
+      t->view->cloneStyle().colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0,0.1), 0.5);
       t->view->disable(DrawBack);
 
       *tracks_view << *t->view;
@@ -716,7 +731,7 @@ void update_ui() {
     }
     
     for (MPRegion* r : t->regions) {
-      Rect rect = Rect(r->inpoint*zoom_x*bpm_factor,0,r->length*zoom_x,track_h);
+      Rect rect = Rect(scroll_x + r->inpoint*zoom_x*bpm_factor,0,r->length*zoom_x,track_h);
       if (!r->view) {
         r->view = new View(rect);
         r->view->cloneStyle();
@@ -728,6 +743,7 @@ void update_ui() {
           r->view->colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0, 0.9));
         } else {
           r->view->colors().set(Color((float)t->r/10.0,(float)t->g/10.0,(float)t->b/10.0, 0.4));
+          r->view->disable(DrawBorder);
         }
       }
     }
