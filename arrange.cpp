@@ -259,6 +259,7 @@ int mouse_dx = 0;
 int mouse_dy = 0;
 long drag_x1 = 0;
 long drag_y1 = 0;
+int old_track_dy = 0;
 View* hover_track_view = NULL;
 
 void toggle_playback() {
@@ -406,6 +407,7 @@ bool on_region_mousedown(View * v, GLV& glv) {
     mouse_state = MS_MOVING;
     mouse_dx = 0;
     mouse_dy = 0;
+    old_track_dy = 0;
     drag_x1 = glv.mouse().x();
     drag_y1 = glv.mouse().y();
 
@@ -470,13 +472,55 @@ bool on_root_mousemove(View* v, GLV& glv) {
 
   Mouse m = glv.mouse();
   mouse_dx += m.dx();
+  mouse_dy += m.dy();
+  
+  int track_dy = round((float)mouse_dy/(float)track_h);
 
   //printf("root_mousemove %d\n",mouse_state);
   
   if (mouse_state == MS_MOVING) {
+    int track_ddy = track_dy-old_track_dy;
+      
     vector<MPRegion*> regions = selected_regions();
     for (MPRegion* r : regions) {
       r->inpoint = snap_time(r->_prev_inpoint + mouse_dx/zoom_x/bpm_factor);
+
+      // allow cross-track moving only inside bounds
+      if ((r->track_id+track_ddy)<0 || (r->track_id+track_ddy)>active_project.tracks.size()-1) {
+        track_ddy = 0;
+      }
+    }
+
+    if (track_ddy!=0) {
+      printf("move across tracks %d\n",track_ddy);
+      vector<MPRegion*> regions = selected_regions();
+      
+      for (MPRegion* r : regions) {
+        Track* t = region_to_track(r);
+        
+        vector<MPRegion*>& v = t->regions;
+        v.erase(remove(begin(v), end(v), r), end(v));
+
+        int new_id = t->id + track_ddy;
+        
+        Track* new_track = active_project.tracks[new_id];
+        /*MPRegion* new_r = new MPRegion {r->id,
+                                new_id,
+                                r->inpoint,
+                                r->length,
+                                new_id};*/
+        //new_r->_prev_inpoint = r->_prev_inpoint;
+        //new_r->selected = true;
+        // recycle the view
+        //new_r->view = r->view;
+        //r->view = NULL;
+        r->track_id = new_id;
+        r->instrument_id = new_id;
+        *new_track->view << *r->view;
+        new_track->regions.push_back(r);
+      }
+      
+      old_track_dy = track_dy;
     }
   }
   return true;
