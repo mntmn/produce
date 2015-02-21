@@ -1,0 +1,250 @@
+GLV Design Notes
+--------------------------------------------------------------------------------
+
+View Properties
+---------------
+We should consider making all the bools in View part of a bit field.
+This will result in better data alignment and smaller memory footprint. We can
+use a 32-bit integer to leave plenty of room for future additions. There will
+be one additional bit operation introduced for getting, setting, and toggling 
+flags. We can have special setter and getter methods for the most used 
+properties, such as visibility.
+
+	// View properties
+	enum{
+		Visible			=1<<0,
+		DrawBack		=1<<1,
+		DrawBorder		=1<<2,
+		CropChildren	=1<<3,
+		FocusHighlight	=1<<4,
+		HitTest			=1<<5
+	};
+
+	// Property methods (like OpenGL)
+	int	     get(int prop){	return mFlags & prop; }
+	void  enable(int prop){	mFlags |= prop; }
+	void disable(int prop){	mFlags &= ~prop; }
+	void  toggle(int prop){ mFlags ^= prop; }
+	
+	// Example usage
+	view.enable(Visible | CropChildren);
+
+	if(view.get(Visible)){
+		// do something
+	}
+
+
+View Cropping
+-------------
+
+There are two different cropping behaviors for a view- cropping its children
+and cropping its own drawing routine(s). Most of the time we will want everything
+cropped, however, there are situations where this is not wanted. For instance, 
+there may be label children attached outside the view's bounds that we do not
+want to crop.
+
+Who should determine if a view gets cropped, the parent or the child? Is the
+flag 'cropChildren' or 'croppable'?
+
+
+
+View Anchoring
+--------------
+
+We would like to make it easy to attach overlays onto views, such as labels
+on sliders. Using a place enumeration may be too rigid to accomplish this.
+Instead a view could have have scalars determining how much it translates
+when its parent view is resized.
+
+
+
+Layout
+------
+What is the exact function of a layout class?
+	A rect generator? 
+	A proxy to a parent view?
+	
+What view members are part of the layout besides its geometry?
+	The anchor place?
+		
+If a layout object is a proxy, then we can avoid an extra step of adding the
+view to its parent. 
+
+	LayoutGrid(T pad, T numH, T numV, View& parentView);
+	
+Example code:
+	// Horizontal slider bank with labels
+	
+	LayoutH lh();
+	Slider sliders[n];
+	for(n){
+		const char c[2] = {i + '0', 0};
+		lh  << (sliders[i] << new Label(c));
+	}
+
+
+Enumerations
+------------
+There are several methods for implementing enumerated types. The problem with the
+standard/simple way, enum{ Left, Right, Up, Down }, is that the types lie in a 
+flat namespace. The C-style way to organize types is to prepend them with a
+category, i.e., enum{ KeyLeft, KeyRight, KeyUp, KeyDown}. This works, but it's
+hard to maintain, especially when one wants to change the category name. 
+A better method is to define enums in a C++ namespace like this:
+
+	namespace Key{
+		enum{ Left, Right, Up, Down };
+	}
+	
+The constants can now be addressed as Key::Left, Key::Right, etc. One can also use
+the "using namespace" directive to avoid having to type the category. Also,
+we can add static methods to the namespace to operate on the types. For
+instance, we can create a function to return a string based on the type.
+
+	namespace Key{
+		const char * getString(int type){
+			switch(type){
+			case Left:	return "Left";
+			case Right:	return "Right";
+			case Up:	return "Up";
+			case Down:	return "Down";
+			}
+		}
+	}
+
+Another consideration is whether enumerations should be typed. Untyped enums
+are more flexible since they are treated simply as int's. One scenario where
+this is useful is when constants are locations in a bit field. The disadvantage
+with untyped enums is that they are not type-safe.
+
+
+
+Widget Value Model
+------------------
+
+Widgets which store values, such as buttons and sliders, have a base class
+templated on their value type. The value type can be a dynamically sizable array,
+Array, or a fixed-sized array, Values. The widget base classes can gracefully 
+handle one or many values, so there is no need to write single-value and
+many-valued versions for each widget. For instance, several types of fixed
+sized Buttons can be created with a Values type:
+
+	ButtonBase<Values<bool> >      b11;	// standard single
+	ButtonBase<Values<bool>, 4>    b41;	// horizontal-array
+	ButtonBase<Values<bool>, 1, 4> b14;	// vertical-array
+	ButtonBase<Values<bool>, 4, 4> b44;	// matrix
+	
+For the dynamically-sized Array type, the x and y dimensions are passed into 
+the constructor:
+	
+	ButtonBase<Array<bool> > button(Rect(100), 4, 4);
+
+If dimensions are passed in when fixed-sized values are used, they are simply
+ignored.
+
+For convenience, the following typedefs are defined:
+
+	typedef ButtonBase<Values<bool> > Button;
+	typedef ButtonBase<Array<bool> >  Buttons;
+	
+	
+	
+Another concern about valued widgets is if/how they should handle various 
+boundary conditions (clip, wrap), mapping strategies (log, pow), step amount, 
+and range symmetry (e.g. [0,1] vs. [-1,1]).
+Most widgets have very similar underlying algorithms with the main differences
+being value type, presentation, and control.
+
+				Value Model				Control			Presentation
+
+	Widget		Range	Bound	Step	Click	Drag
+	---------	---------------------	--------------	
+	Button		[0,1]	wrap	1		toggle	none	symbol (on/off)
+	Slider		[0,1]	clip	any		set		inc		rect
+	Dial		[0,1]	wrap	any		set		inc		circle
+	NumberBox	[a,b]	any		any		none	none	text
+
+
+For the control and presentation of widgets, we could use a strategy pattern to
+change behaviors at run-time. For presentation, we could have a list of strategies.
+This would be useful for sliders to display both the bar and its value.
+
+
+
+Notifications
+-------------
+
+
+Data
+--------------------------------------------------------------------------------
+
+Should we distinguish between compact and extended dimensions?
+	d < 0 are compact (color, orientation)
+	d >=0 are extended (spatial position, time)
+
+
+
+
+
+Model
+--------------------------------------------------------------------------------
+
+There are three distinct types of models:
+- data, parameters and state associated with a simulation or recording
+- view, variables determining presentational aspects of views
+- layout, geometry and spatial relationships of views
+
+
+Data Model:
+
+slider = 0.5
+sliders = { 0.1, 0.4, 1, 0 }
+
+
+View Model:
+
+gridView = {
+	major = 1,
+	minor = 4,
+	showAxes = 1,
+	showGrid = 1,
+	interval = {-1, 1, -1, 1},
+}
+
+view3D = {
+	near = 0.1,
+	far = 100,
+	fovy = 60
+}
+
+
+class Model{
+	virtual string modelToToken() = 0;
+	virtual int modelFromString() = 0;
+};
+
+class DataModel{
+	virtual string modelToToken(){
+		return data.toToken();
+	}
+	
+	virtual int modelFromString(string s){
+		data.fromToken(s);
+	}
+	
+	Data data;
+};
+
+class ViewModel{
+	
+};
+
+
+class View{
+	Model * mDataModel;
+	Model * mViewModel;
+};
+
+
+
+

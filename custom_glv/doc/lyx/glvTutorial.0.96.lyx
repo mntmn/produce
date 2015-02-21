@@ -1,0 +1,4458 @@
+#LyX 1.6.6.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+
+\end_preamble
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman palatino
+\font_sans default
+\font_typewriter courier
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\float_placement h
+\paperfontsize default
+\spacing onehalf
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 2
+\tocdepth 2
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+GLV — Graphics Library of Views
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+
+\backslash
+
+\end_layout
+
+\end_inset
+
+Quick Tutorial (v.
+ 0.96)
+\end_layout
+
+\begin_layout Standard
+\align center
+Media Arts and Technology and the AlloSphere Research Facility
+\end_layout
+
+\begin_layout Standard
+\align center
+University of California, Santa Barbara
+\end_layout
+
+\begin_layout Standard
+Author: Lance Putnam
+\end_layout
+
+\begin_layout Standard
+e-mail: ljputnam@umail.ucsb.edu
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+GLV Overview
+\end_layout
+
+\begin_layout Standard
+GLV (Graphics Library of Views) is a GUI building toolkit written in C++
+ for Linux, OSX, and Win32.
+ GLV is specially designed for creating interfaces to real-time, multimedia
+ applications using hardware accelerated graphics.
+ GLV has no dependencies on other libraries other than OpenGL which is provided
+ by all modern operating systems.
+ Although windowing is technically not a part of GLV, it does provide an
+ abstraction layer for creating bindings to a particular windowing system
+ for creating an OpenGL context and getting mouse and keyboard input.
+ A binding to GLUT is currently provided.
+ 
+\end_layout
+
+\begin_layout Subsection
+Related Work
+\end_layout
+
+\begin_layout Standard
+The following are other cross-platform C++ GUI libraries that use OpenGL
+ for rendering:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="3">
+<features booktabs="true">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+URL
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+License
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+AntTweakBar
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+www.antisphere.com/Wiki/tools:anttweakbar
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+zlib/libpng
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+aedGUI
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+aedgui.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CEGUI
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+www.cegui.org.uk
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+LGPL or MIT
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GiGi
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+gigi.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+LGPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GLGooey
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+glgooey.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+zlib/libpng
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GLUI
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+glui.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+LGPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GLAM
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+glam.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Guichan
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+guichan.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BSD
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+LibUFO
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+libufo.sourceforge.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+LGPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+NUI
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+www.libnui.net
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+GPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Turksa
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+jet.ro/turska
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+BSD/LGPL
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+GLAM
+\end_layout
+
+\begin_layout Plain Layout
+is a meta-toolkit.
+ It does not define a final look and feel for the interface, rather it provides
+ a framework for a very flexible UI.
+ It is up to the developer to specify a component's graphical qualities
+ as well as what animation occurs on a keyboard event, or mouse-over.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Obtaining and Building
+\end_layout
+
+\begin_layout Standard
+The GLV source code can be downloaded from
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+http://mat.ucsb.edu/glv/
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+or checked out through SVN here
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+svn co https://svn.mat.ucsb.edu/svn/glv-svn/trunk glv
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Linux Compilation
+\end_layout
+
+\begin_layout Standard
+The simplest way to build the library is to use GNU Make (see section 2.4
+ below).
+ Use either Synaptic or apt-get to install the most recent developer versions
+ of GLUT and GLEW.
+\end_layout
+
+\begin_layout Subsection
+Mac OS X Compilation
+\end_layout
+
+\begin_layout Standard
+You can build the library using either GNU Make or Xcode.
+ If you are using Make, see section 2.4 below.
+ To use Xcode, you will need to install the developer tools from Apple.
+ You can get them for free (after registration) from http://developer.apple.com/.
+ The Xcode project is located at 
+\family typewriter
+osx/GLV.xcodeproj
+\family default
+.
+\end_layout
+
+\begin_layout Subsection
+Windows Compilation
+\end_layout
+
+\begin_layout Standard
+You will need to either use Cygwin or MinGW with GNU make or create a new
+ Visual Studio project.
+ Visual Studio Express can be downloaded for free from Microsoft.
+ Neither of these two methods have been tested, so you can make a contribution
+ to GLV if you come up with a working solution.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+To simplify this process, we will boot from the Linux live CD, Puredyne,
+ which is bundled with several important media-related libraries.
+ Once Puredyne successfully boots, you need to update it by executing the
+ following commands in a terminal:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+sudo apt-get update
+\end_layout
+
+\begin_layout Plain Layout
+
+sudo apt-get install g++-4.4
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Building With Make
+\end_layout
+
+\begin_layout Standard
+If you had to install Make, test that it is working by opening a terminal
+ and typing 'make --version'.
+ Before running Make, ensure that the correct build options are set in the
+ file 
+\family typewriter
+Makefile.config.
+
+\family default
+ These can be set directly in 
+\family typewriter
+Makefile.config
+\family default
+ or passed in as options to Make as OPTION=value.
+\end_layout
+
+\begin_layout Standard
+To build the GLV library, simply run
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+
+make
+\end_layout
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+and hope for the best.
+ 
+\end_layout
+
+\begin_layout Subsection*
+\begin_inset Note Note
+status open
+
+\begin_layout Subsection*
+Building in Windows
+\end_layout
+
+\begin_layout Enumerate
+Install MinGW
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Download MinGW (automated installer).
+\end_layout
+
+\begin_layout Enumerate
+Choose components: g++ compiler, MinGW Make
+\end_layout
+
+\begin_layout Enumerate
+Install in c:
+\backslash
+MinGW
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Install MSYS
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Download MSYS/BaseSystem/msys-1.0.11/MSYS-1.0.11.exe
+\end_layout
+
+\begin_layout Enumerate
+Install in folder C:
+\backslash
+msys
+\backslash
+1.0
+\end_layout
+
+\begin_layout Enumerate
+Append ;C:
+\backslash
+msys
+\backslash
+1.0;C:
+\backslash
+MinGW to the Path environment variable (Computer->Properties->Advanced->Environm
+ent Variables)
+\end_layout
+
+\begin_layout Enumerate
+Log out and Log in
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Test that everything installed properly by opening a command prompt nad
+ typing 'make --version'
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+GLV API
+\end_layout
+
+\begin_layout Standard
+This tutorial is intended to be both a learning guide and reference to the
+ basic functionality of GLV.
+ Code examples are provided in-line with the text in many cases and related
+ example files in the project 
+\family typewriter
+example/
+\family default
+ folder are notated under headings inside of square brackets, e.g.
+ 
+\emph on
+[exampleFile.cpp]
+\emph default
+.
+\end_layout
+
+\begin_layout Subsection
+Core Objects
+\end_layout
+
+\begin_layout Subsubsection
+Rect
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Rect
+\family default
+ is a geometry base class that all 
+\family typewriter
+View
+\family default
+s inherit from.
+ It represents a rectangular object with data members to describe its position
+ and extent in pixels.
+ Its position is stored as the coordinate of its top-left corner on a cartesian
+ grid with positive x going right and positive y going down.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/Rect.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Rectangle model
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+Rect
+\family default
+ can be constructed in the following ways:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Rect r1(10, 5, 100, 50);	// position (10,5), dimensions (100, 50) 
+\end_layout
+
+\begin_layout Plain Layout
+
+Rect r2(100, 50);			// position  (0,0), dimensions (100, 50)
+\end_layout
+
+\begin_layout Plain Layout
+
+Rect r3(100);				// position  (0,0), dimensions (100,100)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Rect
+\family default
+ has methods for changing its position and extent and multiple methods for
+ getting its right edge, bottom edge, center points, area.
+ There is also a method to determine whether the 
+\family typewriter
+Rect
+\family default
+ contains an x-y coordinate.
+ This can be used, for instance, to check if a 
+\family typewriter
+Rect
+\family default
+ has been clicked on in the window.
+\end_layout
+
+\begin_layout Subsubsection
+View
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[views.cpp, stretchAnchor.cpp]
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+View
+\family default
+ is a 
+\family typewriter
+Rect
+\family default
+ that has a drawing routine, methods for responding to various events, and
+ properties for being a node in a tree of 
+\family typewriter
+View
+\family default
+s.
+ Every 
+\family typewriter
+View
+\family default
+ has a virtual 
+\family typewriter
+onDraw()
+\family default
+ method that gets called every frame.
+ This method contains the 
+\family typewriter
+View
+\family default
+'s specific OpenGL commands to display it on screen.
+ A 
+\family typewriter
+View
+\family default
+ contains four 
+\family typewriter
+View
+\family default
+ references, parent, child, left sibling, and right sibling, that enable
+ it to be a node in a tree structure.
+ This is the main basis for how 
+\family typewriter
+View
+\family default
+s are organized spatially and behaviorally within a top-level 
+\family typewriter
+View
+\family default
+.
+ 
+\family typewriter
+View
+\family default
+s are rendered by traversing the 
+\family typewriter
+View
+\family default
+ tree pre-order calling each 
+\family typewriter
+View
+\family default
+'s 
+\family typewriter
+onDraw()
+\family default
+ method, starting at the root 
+\family typewriter
+View
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/View.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+A hierarchical structure of 
+\family typewriter
+View
+\family default
+s
+\end_layout
+
+\end_inset
+
+
+\begin_inset CommandInset label
+LatexCommand label
+name "Flo:View Hierarchy"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The code to produce the hierarchy shown in Fig.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "Flo:View Hierarchy"
+
+\end_inset
+
+ is as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Create the Views 
+\end_layout
+
+\begin_layout Plain Layout
+
+View v1;				// top parent
+\end_layout
+
+\begin_layout Plain Layout
+
+View View v11, v12;		// 2nd level
+\end_layout
+
+\begin_layout Plain Layout
+
+Views View v121, v122;	// 3rd level Views
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Create the tree hierarchy
+\end_layout
+
+\begin_layout Plain Layout
+
+v1 << v11 << (v12 << v121 << v122);
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+<<
+\family default
+ operator adds its right operand as a child to the left operand.
+ The operator returns the parent view, so that multiple children can easily
+ be added using method chaining.
+ 
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+View
+\family default
+ class has the following enumerated property bit flags:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Visible			// Whether to draw myself
+\end_layout
+
+\begin_layout Plain Layout
+
+DrawBack		// Whether to draw back rect
+\end_layout
+
+\begin_layout Plain Layout
+
+DrawBorder		// Whether to draw border
+\end_layout
+
+\begin_layout Plain Layout
+
+CropChildren	// Whether to crop children when drawing
+\end_layout
+
+\begin_layout Plain Layout
+
+CropSelf		// Whether to crop own drawing routine(s)
+\end_layout
+
+\begin_layout Plain Layout
+
+Focused			// Whether View is focused
+\end_layout
+
+\begin_layout Plain Layout
+
+FocusHighlight	// Whether to highlight border when focused
+\end_layout
+
+\begin_layout Plain Layout
+
+HitTest			// Whether View can be clicked
+\end_layout
+
+\begin_layout Plain Layout
+
+Controllable	// Whether View can be controlled through events
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The properties can be modified and queried through several methods:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+View v;
+\end_layout
+
+\begin_layout Plain Layout
+
+v.enable(Visible);							// enable a property
+\end_layout
+
+\begin_layout Plain Layout
+
+v.disable(DrawBack);						// disable a property
+\end_layout
+
+\begin_layout Plain Layout
+
+v.enable(DrawBorder | CropSelf | HitTest);	// enable multiple properties
+\end_layout
+
+\begin_layout Plain Layout
+
+v.toggle(Visible);							// toggle a property
+\end_layout
+
+\begin_layout Plain Layout
+
+v.property(DrawBack, true);					// set property using a boolean
+\end_layout
+
+\begin_layout Plain Layout
+
+if(v.enabled(Visible)){...}					// check if a property is enabled
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+View
+\family default
+ can also reposition or resize itself automatically when its parent resizes.
+ These capabilities are controlled through its 
+\family typewriter
+anchor()
+\family default
+ and 
+\family typewriter
+stretch()
+\family default
+ methods.
+ In the most general case, anchor and stretch factors can be specified in
+ each dimension as floating-point values between 0 and 1.
+ The factors determine how much of the parent's resize amount is added to
+ the view's position and extent.
+ The following figures illustrate how a child view (C) behaves when its
+ parent (P) is resized by dx and dy.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/ViewAnchor.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Resize behavior with various x, y anchor factors
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \quad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/ViewStretch.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Resize behavior with various x, y stretch factors
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+GLV
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+GLV
+\family default
+ class acts as a top-level 
+\family typewriter
+View
+\family default
+ as well as a bridge to a windowing system.
+ This class handles the drawing of the 
+\family typewriter
+View
+\family default
+ hierarchy and distributes mouse and keyboard events from the window to
+ its descendents.
+ A 
+\family typewriter
+GLV
+\family default
+ object is usually constructed with a static drawing callback.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+void drawCB(View * v){
+\end_layout
+
+\begin_layout Plain Layout
+
+	// v is a pointer to a GLV
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+GLV top(drawCB);
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+GLV
+\family default
+ class contains objects with the current keyboard and mouse state that can
+ be accessed from event and drawing callbacks.
+\end_layout
+
+\begin_layout Subsubsection
+Place
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Place
+\family default
+ is an enumeration namespace for specifying specific points on a rectangle.
+ The defined types are TL, TC, TR, CL, CC, CR, BL, BC, BR where T = top,
+ B = bottom, L = left, R = right, and C = center.
+ These are primarily used for positioning views and specifying parent anchoring
+ points.
+\end_layout
+
+\begin_layout Subsubsection
+Direction
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Direction
+\family default
+ is an enumeration namespace for specifying a direction.
+ The defined types are N, E, S, and W.
+ The convention used in GLV is that north points to the top of the screen
+ and east to the right of the screen.
+ 
+\family typewriter
+Direction
+\family default
+s are used primarily for specifying the placement flow of layout managers.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/Place.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+Place
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/Direction.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+Direction
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Illustrations of 
+\family typewriter
+Place
+\family default
+ and 
+\family typewriter
+Direction
+\family default
+ enums
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Color
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Color
+\family default
+ class stores colors as their constituent red, green, blue, and alpha (RGBA)
+ components.
+ 
+\family typewriter
+Color
+\family default
+s can be created in several ways:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Color c1(0, 1, 0);						// green (alpha = 1)
+\end_layout
+
+\begin_layout Plain Layout
+
+Color c2(0, 0, 1, 0.5);					// blue with alpha
+\end_layout
+
+\begin_layout Plain Layout
+
+Color c3(0.5);							// grey scale
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+There is a lightweight HSV struct defined to allow working within the HSV
+ color space.
+ 
+\family typewriter
+Color
+\family default
+s can be constructed with this alternate syntax:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Color c(HSV(0.5, 1, 1));				// create a new color from HSV values
+\end_layout
+
+\begin_layout Plain Layout
+
+c.print();								// prints [0.00 1.00 1.00 1.00]
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Likewise, we can set and get a color's HSV values:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Color c;								// create a new color
+\end_layout
+
+\begin_layout Plain Layout
+
+c = HSV(0.5, 1, 1);						// set its RGB components from HSV values
+\end_layout
+
+\begin_layout Plain Layout
+
+c.print();								// prints [0.00 1.00 1.00 1.00]
+\end_layout
+
+\begin_layout Plain Layout
+
+HSV h;									// create a new HSV struct
+\end_layout
+
+\begin_layout Plain Layout
+
+h = c;									// convert color's RGB components to HSV
+\end_layout
+
+\begin_layout Plain Layout
+
+printf("[%g %g %g]", h.h, h.s, h.v);	// prints [0.5 1 1]
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+HSV
+\family default
+ also has a special constructor to allow a short-hand method of getting
+ a color's HSV values.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Color c(HSV(0.5, 1, 1));
+\end_layout
+
+\begin_layout Plain Layout
+
+HSV h(c);								// create a new HSV struct from a color
+\end_layout
+
+\begin_layout Plain Layout
+
+printf("[%g %g %g]", h.h, h.s, h.v);	// prints [0.5 1 1]
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Style
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Style
+\family default
+ object contains properties that determine the look of a 
+\family typewriter
+View
+\family default
+.
+ Each 
+\family typewriter
+View
+\family default
+ contains a pointer to a single 
+\family typewriter
+Style
+\family default
+ object.
+ By default, this is set to the global 
+\family typewriter
+Style
+\family default
+ object 
+\family typewriter
+Style::standard()
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+View v1;
+\end_layout
+
+\begin_layout Plain Layout
+
+v1.style();			// reference to Style::standard()
+\end_layout
+
+\begin_layout Plain Layout
+
+v1.style().color.back	// the background color
+\end_layout
+
+\begin_layout Plain Layout
+
+v1.colors().back		// shorthand for style().color.back
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Window/Application
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Window
+\family default
+ class provides the actual operating system window for drawing OpenGL.
+ There are currently only bindings to GLUT, but others can easily be created
+ by subclassing 
+\family typewriter
+Window
+\family default
+.
+ The 
+\family typewriter
+Window
+\family default
+ holds a pointer to a GLV context.
+ The code for setting up a 
+\family typewriter
+Windo
+\family default
+w typically looks like this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},showstringspaces=false,tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+GLV top(drawCB);
+\end_layout
+
+\begin_layout Plain Layout
+
+Window win(800, 600, "GLV Window", &top); 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Application
+\family default
+ class is responsible for starting the main application event loop.
+ 
+\family typewriter
+Application::run()
+\family default
+ is called after setting up the GUI code.
+\end_layout
+
+\begin_layout Subsubsection
+Keyboard
+\end_layout
+
+\begin_layout Standard
+This is a class used to store the current state of the keyboard.
+ The state includes the key code of the last key pressed, whether it was
+ pressed or released, and the state of modifier keys shift, control, and
+ alt.
+ 
+\end_layout
+
+\begin_layout Standard
+Printable keyboard keys can be referenced by their non-shifted ASCII character.
+ For non-printable keys, there exists a 
+\family typewriter
+Key::t 
+\family default
+type with the following types:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Enter		F{1-12}		PageDown
+\end_layout
+
+\begin_layout Plain Layout
+
+BackSpace	Insert		PageUp
+\end_layout
+
+\begin_layout Plain Layout
+
+Tab			Left		End
+\end_layout
+
+\begin_layout Plain Layout
+
+Return		Up			Home
+\end_layout
+
+\begin_layout Plain Layout
+
+Escape		Right
+\end_layout
+
+\begin_layout Plain Layout
+
+Delete		Down 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Here is a skeleton code illustrating how to map key events to various actions,
+ such as inside a callback:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},showstringspaces=false,tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+switch(keyboard.key()){
+\end_layout
+
+\begin_layout Plain Layout
+
+	case 'b':			break;
+\end_layout
+
+\begin_layout Plain Layout
+
+	case ' ':			break;
+\end_layout
+
+\begin_layout Plain Layout
+
+	case Key::Escape:	break;
+\end_layout
+
+\begin_layout Plain Layout
+
+	case Key::F5:		break;
+\end_layout
+
+\begin_layout Plain Layout
+
+}; 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Mouse
+\end_layout
+
+\begin_layout Standard
+This is a class used to store the current state of the mouse.
+ The state includes its buttons' state, coordinates relative to the window,
+ coordinates relative to its listener, coordinates relative to the window
+ when each button was pressed, mouse wheel position, and velocity and accelerati
+on in the x and y directions.
+\end_layout
+
+\begin_layout Subsubsection
+Data
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Data
+\family default
+ is a dynamically typed, multidimensional array that 
+\family typewriter
+View
+\family default
+s use to store model data according to the standard model-view-controller
+ paradigm.
+ The types of data are specified by the enumeration types 
+\family typewriter
+BOOL
+\family default
+, 
+\family typewriter
+INT
+\family default
+, 
+\family typewriter
+FLOAT
+\family default
+, 
+\family typewriter
+DOUBLE
+\family default
+, and 
+\family typewriter
+STRING
+\family default
+.
+ The special type 
+\family typewriter
+VOID
+\family default
+ designates no type.
+ The array supports up to four dimensions of arbitrary size.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},showstringspaces=false,tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Data d(Data::INT, 5,4,3,2);	// allocate array with dimensions 5 x 4 x 3
+ x 2 of type int
+\end_layout
+
+\begin_layout Plain Layout
+
+d.type();					// returns INT
+\end_layout
+
+\begin_layout Plain Layout
+
+d.order();					// returns number of dimensions (=4)
+\end_layout
+
+\begin_layout Plain Layout
+
+d.size();					// returns total number of elements (=120)
+\end_layout
+
+\begin_layout Plain Layout
+
+d.size(0);					// returns size of dimension 0 (=5)
+\end_layout
+
+\begin_layout Plain Layout
+
+d.size(1);					// returns size of dimension 1 (=4)
+\end_layout
+
+\begin_layout Plain Layout
+
+d.size(1,2,3);				// returns product of sizes of dimensions 1, 2, and 3 (=24)
+\end_layout
+
+\begin_layout Plain Layout
+
+d.shape(2,3,4,5);			// reverse dimensions to be 2 x 3 x 4 x 5
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+d.assign(123, 0,0,0,0);		// sets element at index (0,0,0,0) to 123
+\end_layout
+
+\begin_layout Plain Layout
+
+d.at<int>(0,0,0,0);			// gets element at index (0,0,0,0) (=123)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+One handy feature of 
+\family typewriter
+Data
+\family default
+ is the ability to create subsets of data called slices.
+ A slice points to the same memory as its originator, but can have a different
+ memory offset, index stride, and shape.
+ By default, whenever a new slice is created it turns into a one-dimensional
+ array with a size equal to the total number of elements of its originator.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},showstringspaces=false,tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Data x(Data::INT, 4);
+\end_layout
+
+\begin_layout Plain Layout
+
+x.assign(10, 0);
+\end_layout
+
+\begin_layout Plain Layout
+
+x.assign(20, 1);
+\end_layout
+
+\begin_layout Plain Layout
+
+x.assign(30, 2);
+\end_layout
+
+\begin_layout Plain Layout
+
+x.assign(40, 3);
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\end_layout
+
+\begin_layout Plain Layout
+
+Data a = x.slice();					// [10, 20, 30, 40]
+\end_layout
+
+\begin_layout Plain Layout
+
+Data b = x.slice(0, d.size()/2, 2);	// [10, 30]
+\end_layout
+
+\begin_layout Plain Layout
+
+Data c = x.slice(1, d.size()/2, 2);	// [20, 40]
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Messaging
+\end_layout
+
+\begin_layout Standard
+There are two message passing subsystems in GLV— default GUI event callbacks
+ and customizable notifications between objects.
+\end_layout
+
+\begin_layout Subsubsection
+Event Callbacks
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+View
+\family default
+ can handle callbacks through virtual methods and/or function pointers.
+ Upon receipt of an event, a 
+\family typewriter
+View
+\family default
+'s virtual methods are called, then its list of function pointers, if populated.
+ A 
+\family typewriter
+View
+\family default
+ can receive any of the following events of type of 
+\family typewriter
+Event::t
+\family default
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Quit	WindowCreate	FocusGained	MouseDown	KeyDown
+\end_layout
+
+\begin_layout Plain Layout
+
+		WindowDestroy	FocusLost	MouseUp		KeyUp
+\end_layout
+
+\begin_layout Plain Layout
+
+		WindowResize				MouseMove	KeyRepeat
+\end_layout
+
+\begin_layout Plain Layout
+
+									MouseDrag
+\end_layout
+
+\begin_layout Plain Layout
+
+									MouseWheel
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+View
+\family default
+'s virtual methods are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+virtual void onAnimate(double dsec, GLV& g);
+\end_layout
+
+\begin_layout Plain Layout
+
+virtual void onDraw(GLV& g);
+\end_layout
+
+\begin_layout Plain Layout
+
+virtual bool onEvent(Event::t e, GLV& g);
+\end_layout
+
+\begin_layout Plain Layout
+
+virtual void onResize(space_t dx, space_t dy);
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The function pointer types are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+typedef bool (*eventCallback)(View * v, GLV& g);
+\end_layout
+
+\begin_layout Plain Layout
+
+typedef void (*drawCallback)(View * v, GLV& g);
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The event callbacks return a boolean value designating whether the event
+ should be propagated onward to the parent view.
+ A rule of thumb is that the event callback should only return false if
+ it responds to the incoming event, otherwise it should return true so that
+ the event can be handled from a more global scope.
+ Virtual methods can be overridden by subclasses to customize their behavior.
+ The following code example demonstrates how to create a 
+\family typewriter
+View
+\family default
+ subclass that defines its own drawing callback and adds additional event
+ handling.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+class SubView : public BaseView{
+\end_layout
+
+\begin_layout Plain Layout
+
+public:
+\end_layout
+
+\begin_layout Plain Layout
+
+	virtual void onDraw(GLV& g){
+\end_layout
+
+\begin_layout Plain Layout
+
+		// drawing commands within local pixel space
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	virtual bool onEvent(Event::t e, GLV& g){
+\end_layout
+
+\begin_layout Plain Layout
+
+		bool r = true;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+		switch(e){
+\end_layout
+
+\begin_layout Plain Layout
+
+		case Event::MouseDrag:	return false;
+\end_layout
+
+\begin_layout Plain Layout
+
+		case Event::MouseDown:	return false;
+\end_layout
+
+\begin_layout Plain Layout
+
+		case Event::KeyDown:	return false;
+\end_layout
+
+\begin_layout Plain Layout
+
+		default:;
+\end_layout
+
+\begin_layout Plain Layout
+
+		}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+		return r && BaseView::onEvent(e, g);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	virtual void onResize(space_t dx, space_t dy){
+\end_layout
+
+\begin_layout Plain Layout
+
+		// dx and dy are the changes in dimensions
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+};
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+View
+\family default
+ also has a single pointer to a 
+\family typewriter
+drawCallback
+\family default
+ type and a map of 
+\family typewriter
+eventCallback
+\family default
+ lists.
+ A 
+\family typewriter
+View
+\family default
+'s function pointer type callbacks are called after its virtual callbacks.
+ The event callbacks are special in that one or more can be added per event
+ type.
+ 
+\family typewriter
+View
+\family default
+ has an overloaded, chainable function operator defined to simplify appending
+ event callbacks.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+View view;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// append mouse dragging behaviors to view
+\end_layout
+
+\begin_layout Plain Layout
+
+view	(Event::MouseDrag, mouseMove)
+\end_layout
+
+\begin_layout Plain Layout
+
+		(Event::MouseDrag, mouseResize);
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Notifications
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[notification.cpp]
+\end_layout
+
+\begin_layout Standard
+All GLV 
+\family typewriter
+View
+\family default
+s inherit a 
+\family typewriter
+Notifier
+\family default
+ class so they can operate as the subject of one or more observers.
+ The principle of operation is for a 
+\family typewriter
+Notification
+\family default
+ object to be passed from the sending object (subject) to the receiving
+ objects (observers).
+ The 
+\family typewriter
+Notification
+\family default
+ holds pointers to the sender, receiver, and optional data and is handled
+ by a user-defined callback function.
+ This is used primarily for sending out notifications when a widget changes
+ its value.
+ For instance, we may want to update a label according to the value of a
+ slider:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Notification callback
+\end_layout
+
+\begin_layout Plain Layout
+
+void sliderUpdateLabel(const Notification& n){
+\end_layout
+
+\begin_layout Plain Layout
+
+	Label& l = *n.receiver<Label>();
+\end_layout
+
+\begin_layout Plain Layout
+
+	Slider& v = *n.sender<Slider>();
+\end_layout
+
+\begin_layout Plain Layout
+
+	l.setValue(v.getValue());
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+int main(){
+\end_layout
+
+\begin_layout Plain Layout
+
+	Slider slider;
+\end_layout
+
+\begin_layout Plain Layout
+
+	Label sliderLabel;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	// Notify the label whenever the slider value is updated.
+\end_layout
+
+\begin_layout Plain Layout
+
+	slider.attach(sliderUpdateLabel, Update::Value, &sliderLabel);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Drawing Commands
+\end_layout
+
+\begin_layout Standard
+Drawing commands can be issued either directly through OpenGL or by using
+ the commands found in the 
+\family typewriter
+draw
+\family default
+ namespace (in 
+\family typewriter
+glv_draw.h
+\family default
+).
+ The drawing namespace consists of a minimal wrapper around the OpenGL API,
+ graphics buffers, an assortment of shape drawing routines, and vector-based
+ text rendering.
+\end_layout
+
+\begin_layout Subsubsection
+GraphicsData
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[graphicsData.cpp]
+\end_layout
+
+\begin_layout Standard
+GLV uses buffers versus ``immediate mode'' for all drawing.
+ This has several advantages: 1) rendering is more efficient, both in terms
+ of data bandwidth and rendering speed, 2) vertices and colors do not have
+ to be sent in a particular order, 3) data can be produced once and rendered
+ multiple times, e.g., to multiple viewports, and 4) geometry can rendered
+ using indices.
+ In GLV, an abstraction called 
+\family typewriter
+GraphicsData
+\family default
+ stores separate buffers of vertices, colors, and indices that can be rendered
+ through the 
+\family typewriter
+draw::paint
+\family default
+ function.
+ The buffers contained in 
+\family typewriter
+GraphicsData
+\family default
+ grow dynamically as elements are added to them, so explicit memory management
+ is generally not required.
+ The following code example illustrates how to draw a very simple mesh.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+GraphicsData gd;		// create a new set of graphics buffers
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// inside a drawing routine...
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+	// reset internal "taps" of buffers to beginning
+\end_layout
+
+\begin_layout Plain Layout
+
+	gd.reset();
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	// generate rainbow heptagon
+\end_layout
+
+\begin_layout Plain Layout
+
+	for(int i=0; i<7; ++i){
+\end_layout
+
+\begin_layout Plain Layout
+
+		float p = float(i)/7;
+\end_layout
+
+\begin_layout Plain Layout
+
+		gd.addColor(HSV(p));
+\end_layout
+
+\begin_layout Plain Layout
+
+		gd.addVertex(cos(p*2*M_PI), sin(p*2*M_PI));
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	// draw heptagon
+\end_layout
+
+\begin_layout Plain Layout
+
+	draw::paint(draw::LineLoop, gd);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	// generate indices 0, 3, 6, 2, 5, 1, 4
+\end_layout
+
+\begin_layout Plain Layout
+
+	for(int i=0; i<7; ++i){
+\end_layout
+
+\begin_layout Plain Layout
+
+		gd.addIndex(i*3 % 7);
+\end_layout
+
+\begin_layout Plain Layout
+
+	}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+	// draw star heptagon
+\end_layout
+
+\begin_layout Plain Layout
+
+	draw::paint(draw::LineLoop, gd);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Text
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[drawText.cpp]
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+draw
+\family default
+ namespace has a function for rendering simple text to the screen.
+ The text renderer uses an internal fixed-width vector font with each character
+ defined on an 8x11 unit grid.
+ The cap lies at 0 units and the baseline at 8 units.
+ In general, characters are rendered with the minimal number of vertices
+ that does not sacrifice their readability and distinction from others.
+ The text rendering mechanism is not meant to be comprehensive, but to be
+ quick and easy without requiring dependencies on external libraries or
+ font files.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/fontMetrics.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Font metrics
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/drawASCII.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Font glyphs
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Default GLV vector font
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A text string can be rendered using one line of code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+draw::text("Amazingly few discotheques provide jukeboxes.");
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this example, the text is drawn with its left edge at 0 and letter cap
+ at 0.
+ Text strings with new lines, 
+\backslash
+n, and tabs, 
+\backslash
+t, are also handled properly by the renderer.
+\end_layout
+
+\begin_layout Subsection
+Widgets
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[widgets.cpp]
+\end_layout
+
+\begin_layout Subsubsection
+Widget
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[attachVariable.cpp]
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Widget
+\family default
+ is the base class for widgets that control one or more numerical values,
+ such as sliders and buttons.
+ It contains an array of values and an interval to which those values are
+ restricted.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Sliders w(Rect(100,20), 8);	// make a bank of 8 sliders
+\end_layout
+
+\begin_layout Plain Layout
+
+w.interval(100, 0);			// set value interval to [0,100]
+\end_layout
+
+\begin_layout Plain Layout
+
+w.min();					// get lower bound of interval (=0)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.max();					// get upper bound of interval (=100)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.setValue(50, 0);			// set slider 0 to 50
+\end_layout
+
+\begin_layout Plain Layout
+
+w.setValue(90, 1);			// set slider 1 to 90
+\end_layout
+
+\begin_layout Plain Layout
+
+w.getValue(0);				// get slider 0 value (=50)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For widgets having more than one value, there are methods for accessing
+ specific widget elements.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Buttons w(Rect(100), 4,2);	// make a 4x2 grid of buttons
+\end_layout
+
+\begin_layout Plain Layout
+
+w.size();					// get total number of elements (=16)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.sizeX();					// get number of elements across x dimension (=4)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.sizeY();					// get number of elements across y dimension (=2)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.select(1,1);				// select button at x,y position (1,1)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.select(5);				// select button at x,y position (5/4, 5 mod 4) = (0, 1)
+\end_layout
+
+\begin_layout Plain Layout
+
+w.selected();				// get last selected button (=5)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+It is possible to attach variables to a 
+\family typewriter
+ValueWidget
+\family default
+ that get updated whenever the widget changes value.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Slider2D w;
+\end_layout
+
+\begin_layout Plain Layout
+
+float x,y;					// some variables to control
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+w.attachVariable(x, 0);		// attach variable to the first widget value
+\end_layout
+
+\begin_layout Plain Layout
+
+w.attachVariable(y, 1);		// atach variable to the second widget value
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+w.setValue(0.5, 0);			// x is set to 0.5
+\end_layout
+
+\begin_layout Plain Layout
+
+w.setValue(0.1, 1);			// y is set to 0.1
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When variables are attached to a 
+\family typewriter
+ValueWidget
+\family default
+ they will be polled from the GLV draw loop to see if they differ from the
+ mapped to value in the widget.
+ If the variable differs, then the widget will synchronize its value to
+ the attached variable and send out any notifications to observers.
+\end_layout
+
+\begin_layout Subsubsection
+Label
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+Label
+\family default
+ is a text string that is typically attached as a child to another view.
+ By default, 
+\family typewriter
+Label
+\family default
+s do not render a background or border allowing them to 'float' on top of
+ other views.
+ Hit testing is also disabled by default preventing them from stealing focus
+ from a parent view.
+ 
+\family typewriter
+Label
+\family default
+s can also be specified to render vertically which can be useful for notating
+ the y-axis of graphs.
+\end_layout
+
+\begin_layout Subsubsection
+Button
+\end_layout
+
+\begin_layout Standard
+A 
+\family typewriter
+Button
+\family default
+ is a widget that has two possible states- on or off.
+ By default, a 
+\family typewriter
+Button
+\family default
+ is toggleable meaning that its state changes when it is clicked on.
+ A 
+\family typewriter
+Button
+\family default
+ can also be made non-toggleable so that it becomes active on a 
+\family typewriter
+MouseDown
+\family default
+ event and inactive on a 
+\family typewriter
+MouseUp
+\family default
+ event.
+ 
+\family typewriter
+Button
+\family default
+ has two drawing function pointers for specifying which graphical symbols
+ to use for on and off states.
+\end_layout
+
+\begin_layout Subsubsection
+Buttons
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Buttons
+\family default
+ widget is an extremely flexible N x M button array.
+ It can be used to create menus, radio buttons, and button matrices, for
+ example.
+ The Buttons widgets can be either in mutually exclusive mode or not.
+ When in mutually exclusive mode, only one button can be on at a time.
+ Otherwise, any number of buttons can be on or off at a time.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/ButtonOn.png
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+1x1
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/Buttons1x4.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+1x4
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/Buttons4x1.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+4x1
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/Buttons4x4.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+4x4
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+Button
+\family default
+ and 
+\family typewriter
+Buttons
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Plot
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Plot
+\family default
+ object permits various types of graphs to be produced from numerical data.
+ A 
+\family typewriter
+Plot
+\family default
+ contains one or more 
+\family typewriter
+Plottable
+\family default
+ objects which define a particular drawing behavior.
+ The default behavior is for a 
+\family typewriter
+Plottable
+\family default
+ to graph whatever data is present in the 
+\family typewriter
+Plot
+\family default
+ it is attached to.
+ A 
+\family typewriter
+Plottable
+\family default
+ can also contain its own data so that multiple graphs can be displayed
+ on a single 
+\family typewriter
+Plot
+\family default
+.
+ When a 
+\family typewriter
+Plottable
+\family default
+ has its own data defined, it ignores any data that may be contained in
+ the 
+\family typewriter
+Plot
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+Plottable
+\family default
+ inherits a 
+\family typewriter
+GraphicsMap
+\family default
+.
+ 
+\family typewriter
+GraphicsMap
+\family default
+ defines a virtual method called 
+\family typewriter
+onMap
+\family default
+ that defines how model data is mapped into graphics data for plotting.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/FunctionPlotX.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+1D y-axis plot using 
+\family typewriter
+PlotFunction1D
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/FunctionPlotY.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+1D x-axis plot using 
+\family typewriter
+PlotFunction1D
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/FunctionPlotXY.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+2D plot using 
+\family typewriter
+PlotFunction2D
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/DensityPlot.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+2D plot using 
+\family typewriter
+PlotFunction2D
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Using various 
+\family typewriter
+Plottable
+\family default
+s with 
+\family typewriter
+Plot
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+NumberDialer
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+NumberDialer
+\family default
+ allows one to treat each digit of a number as a dial.
+ The number of digits in the integer and fractional parts is specified upon
+ construction.
+ The 
+\family typewriter
+NumberDialer
+\family default
+ can also be specified to have a minimum or maximum value.
+ The default amounts are the largest displayable values.
+ When a digit is dragged up or down with the mouse, the number is incremented
+ or decremented by an amount proportional to the place of the digit.
+ The currently selected digit (indicated by a lightly colored box) can also
+ be modified through the number keys on the keyboard.
+ The sign of the number can be toggled by clicking it or by pressing the
+ '-' key.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/NumberDialer1.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Integer
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/NumberDialer2.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Real
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+NumberDialer
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Slider
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Slider
+\family default
+ widget allows one to change a value by sliding a bar across the screen.
+ Depending on its dimensions, the slider will automatically be displayed
+ as vertical (w < h) or horizontal (w >= h).
+ The slider value is 0 at the left or bottom edge and 1 at the top or right
+ edge.
+ In its signed mode, the value is -1 at the left or bottom edge.
+\end_layout
+
+\begin_layout Standard
+Clicking on the slider with the left mouse button will set its absolute
+ position.
+ Dragging with the left or right mouse button will increment the slider's
+ value.
+ Normally, the amount the slider moves is in a one-to-one correspondence
+ to the mouse cursor position.
+ However, if both mouse buttons are held while dragging, the slider is increment
+ed by a quarter of the distance the mouse moves.
+\end_layout
+
+\begin_layout Subsubsection
+Sliders
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Sliders
+\family default
+ widget is a group of several sliders.
+ In general, it will be easier and more efficient to control a set of values
+ using a single Sliders widget rather than multiple 
+\family typewriter
+Slider
+\family default
+ widgets.
+ The sliders can be displayed either horizontally or vertically.
+ It also supports a special drag set mode where sliders can be set by dragging
+ across the widget as if drawing a curve.
+ Mouse interaction with individual sliders is the same as the 
+\family typewriter
+Slider
+\family default
+ widget.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/Slider1H.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Horizontal 
+\family typewriter
+Slider
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename fig/Slider1V.png
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Vertical 
+\family typewriter
+Slider
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fig/SlidersV.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Vertical 
+\family typewriter
+Sliders
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+Slider
+\family default
+ and 
+\family typewriter
+Sliders
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+SliderRange
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+SliderRange
+\family default
+ widget allows one to control the minimum and maximum values of an interval.
+ The entire interval can be translated by dragging the bar.
+ Clicking and dragging near the ends of the bar changes the associated extremum.
+ Clicking on a blank region causes the whole interval to translate in the
+ direction of the click.
+ 
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/SliderRangeH.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Horizontal 
+\family typewriter
+SliderRange
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Slider2D
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Slider2D
+\family default
+ widget is used to control two numeric values simultaneously, such as an
+ x-y position.
+ A knob indicates the current values of the slider.
+ The slider values are 0 at the left or bottom edge and 1 at the top or
+ right edge.
+ Mouse interaction along each axis of 
+\family typewriter
+Slider2D
+\family default
+ is the same as with the 
+\family typewriter
+Slider
+\family default
+ widget.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename fig/Slider2D.png
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+Slider2D
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+SliderGrid
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+SliderGrid
+\family default
+ widget is used to control two or more parameters either alone or in pairs.
+ Each cell in the grid represents one permutation of parameter pairs.
+ The pairs are controlled just like in 
+\family typewriter
+Slider2D
+\family default
+, with the exception of the cells along the diagonal.
+ The diagonal cells allow exclusive control over individual parameters.
+ The parameters are layed out on the grid with the first parameter at the
+ bottom-left and the last parameter at the top-right.
+ Within each cell, the slider values are 0 at the left or bottom edge and
+ 1 at the top or right edge.
+ Mouse interaction within cells is the same as with the 
+\family typewriter
+Slider2D
+\family default
+ widget.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename fig/SliderGrid3.png
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Three element 
+\family typewriter
+SliderGrid
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename fig/SliderGrid4.png
+
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Four element 
+\family typewriter
+SliderGrid
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+
+\family typewriter
+SliderGrid
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+View3D
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+View3D
+\family default
+ allows a 3D scene to be rendered within a View.
+ Custom drawing code is implemented by subclassing 
+\family typewriter
+View3D
+\family default
+ and overriding the virtual onDraw3D() method.
+ 
+\family typewriter
+View3D
+\family default
+ has options for setting the near and far clipping planes and the field
+ of view angle in the y direction.
+ By default, depth testing is enabled and blending is disabled.
+\end_layout
+
+\begin_layout Subsection
+Layout
+\end_layout
+
+\begin_layout Subsubsection
+Placer
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Placer
+\family default
+ object is used to position a sequence of elements relative to each other,
+ at absolute positions, or a combination of both.
+ Placer holds relative increment factors and absolute increment amounts
+ for both the x and y directions, thus making it an extremely flexible layout
+ positioner.
+ 
+\end_layout
+
+\begin_layout Standard
+In the simplest case, elements can be arranged so that their absolute positions
+ are a fixed distance apart.
+ This is done by using relative increment factors of zero and absolute increment
+ amounts equal to the distance.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+View top;
+\end_layout
+
+\begin_layout Plain Layout
+
+View v1(Rect(6)), v2(v1), v3(Rect(4)), v4(Rect(10,8));
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// args: (absolute x-increment, absolute y-increment)
+\end_layout
+
+\begin_layout Plain Layout
+
+Placer placer(8, 0);
+\end_layout
+
+\begin_layout Plain Layout
+
+placer << v1 << v2 << v3 << v4;
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This results in the arrangement: 
+\begin_inset Graphics
+	filename fig/SpacerAbs.png
+	rotateOrigin leftBottom
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Another use of 
+\family typewriter
+Placer
+\family default
+ is to position a sequence of views with a fixed amount of padding between
+ them.
+ In this case, the relative increment factor is set to 1, while the absolute
+ increment is set to the desired padding amount.
+ The following example positions elements going east with a padding of 1.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+View top; View v1(Rect(6)), v2(v1), v3(Rect(4)), v4(Rect(10,8));
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// args: (parent view, flow direction, align place, initial x, initial y,
+ padding)
+\end_layout
+
+\begin_layout Plain Layout
+
+Placer placer(top, Direction::E, Place::TL, 0,0, 1);
+\end_layout
+
+\begin_layout Plain Layout
+
+placer << v1 << v2 << v3 << v4;
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This results in the arrangement: 
+\begin_inset Graphics
+	filename fig/SpacerFlow.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the previous example, the alignment was set to the top-left corner.
+ By setting the alignment property of 
+\family typewriter
+Placer
+\family default
+, views can be aligned from different places.
+ 
+\end_layout
+
+\begin_layout Standard
+Arrangement using center-left alignment: 
+\begin_inset Graphics
+	filename fig/SpacerCL.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Arrangement using bottom-left alignment: 
+\begin_inset Graphics
+	filename fig/SpacerBL.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Table
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+[tableLayout.cpp]
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Table
+\family default
+ object is used for doing general rectangular layouts on an N x M dimensional
+ grid.
+ A 2D arrangement string is used to specify how 
+\family typewriter
+View
+\family default
+s will be arranged when added to the table, starting from the top-left corner
+ and going left-to-right, top-to-bottom.
+ The arrangement string consists of single character codes that specify
+ either existence of elements and their alignments or table cell structure
+ (i.e.
+ spanning, dimensions).
+\end_layout
+
+\begin_layout Standard
+The element alignment codes are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+p ^ q	top-left top-center top-right
+\end_layout
+
+\begin_layout Plain Layout
+
+< x >	center-left center-center center-right
+\end_layout
+
+\begin_layout Plain Layout
+
+b v d	bottom-left bottom-center bottom-right
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The structural codes are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+.	empty region
+\end_layout
+
+\begin_layout Plain Layout
+
+-	span first leftward neighboring element rightward
+\end_layout
+
+\begin_layout Plain Layout
+
+|	span first upward neighboring element downward
+\end_layout
+
+\begin_layout Plain Layout
+
+,	end of row
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The arrangement string makes it easy to specify complex layouts.
+ The string can be written in a two-dimensional fashion to give a one-to-one
+ visualization of the arrangement.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},showstringspaces=false,tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+const char * layout =
+\end_layout
+
+\begin_layout Plain Layout
+
+	".
+ x - x,"
+\end_layout
+
+\begin_layout Plain Layout
+
+	"x x x -,"
+\end_layout
+
+\begin_layout Plain Layout
+
+	"| x | .
+ "
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Table table(layout);
+\end_layout
+
+\begin_layout Plain Layout
+
+table << v1 << v2 << v3 << v4 << v5 << v6;
+\end_layout
+
+\begin_layout Plain Layout
+
+table.arrange(); 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This produces: 
+\begin_inset Graphics
+	filename fig/TableComplex.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If the arrangement string is shorter than the number of 
+\family typewriter
+View
+\family default
+s added, then it will be repeated.
+ This feature can be used to define a layout pattern using only a single
+ row specification.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "basicstyle={\footnotesize\ttfamily},language={C++},tabsize=4"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Table table("><");
+\end_layout
+
+\begin_layout Plain Layout
+
+table << v1 << v2 << v3 << v4 << v5 << v6;
+\end_layout
+
+\begin_layout Plain Layout
+
+table.arrange();
+\end_layout
+
+\end_inset
+
+ This produces: 
+\begin_inset Graphics
+	filename fig/TableRepeat.png
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

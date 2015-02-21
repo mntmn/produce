@@ -57,7 +57,7 @@ void send_midi(int note_on) {
   }
   memcpy(buffer, ev.data, 3);
 
-  printf("midi notes sent\n");
+  //printf("midi notes sent\n");
 }
 
 int process_callback(jack_nframes_t nframes, void *notused)

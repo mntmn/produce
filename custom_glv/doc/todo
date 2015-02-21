@@ -1,0 +1,16 @@
+-
+Make event and draw callbacks typesafe. We are currently unsafely casting View *'s.
+
+- 
+Consider removing virtual onResize from Rect to get rid of vtable pointer member. There is a potential size anomaly when Rects are packed into another struct. This makes it less straightforward to serialize things to disk.
+
+- 
+Anchoring can lead to unexpected behavior when set before adding to a layout
+
+- 
+Add more widgets:
+	ScrollView: scrollbars when children outside of view
+	TextView: text display and editing
+	ListView: drop-down list
+
+	

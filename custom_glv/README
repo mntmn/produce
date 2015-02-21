@@ -1,0 +1,109 @@
+GLV - GUI Building Toolkit
+(version 0.96)
+
+========================================
+1. About
+========================================
+GLV (Graphics Library of Views) is a GUI building toolkit written in C++ for Linux, OSX, and Win32. GLV is specially designed for creating interfaces to real-time, multimedia applications using hardware accelerated graphics. GLV has no dependencies on other libraries other than OpenGL which is provided by all modern operating systems. Although windowing is technically not a part of GLV, it does provide an abstraction layer for creating bindings to a particular windowing system for creating an OpenGL context and getting mouse and keyboard input. A binding to GLUT is currently provided. 
+
+
+========================================
+2. Compilation Instructions
+========================================
+
+The source code can either be built into a library or directly compiled from source into an application. In the following instructions, the base directory is where this README file is located.
+
+----------------------------------------
+2.1 Building a Library
+----------------------------------------
+........................................
+Make (Linux, OS X)
+........................................
+First, ensure that the correct build options are set. These can be set directly in Makefile.config or passed in as options to Make as OPTION=value. Once Make has been configured properly, run
+
+	make
+
+to build the library.
+
+There are several other targets within Makefile. These are:
+
+	make all		- builds library and tests
+	make clean		- removes binaries from build folder
+	make test		- builds the unit tests and other empirical testing code
+	make test/x.cpp		- builds and runs source file 'x'
+	make example/x.cpp	- builds and runs source file 'x'
+
+Binaries are located in build/release or build/debug depending on the build configuration. 
+
+........................................
+Xcode (OS X)
+........................................
+1) Open osx/GLV.xcodeproj
+2) Select 'ALL' as the active target and build.
+
+A static library and framework will be in project build folder.
+
+........................................
+MS Visual Studio (Windows)
+........................................
+There is no Visual Studio project included, but it is simple to set one up by creating your own by selecting "Console Application" and then choosing "empty project." You'll then need to add the GLV source files and OpenGL and GLEW (and if using Window, GLUT) dependencies.
+
+Obtain GLEW from
+  http://glew.sourceforge.net/
+
+To use the shared library version of GLEW, you need to copy the headers and libraries into their destination directories. On Windows this typically boils down to copying:
+
+bin/glew32.dll		to    	%SystemRoot%/system32
+lib/glew32.lib		to    	{VC Root}/Lib
+include/GL/glew.h	to    	{VC Root}/Include/GL
+include/GL/wglew.h	to    	{VC Root}/Include/GL
+
+
+Obtain GLUT from
+  http://www.xmission.com/%7Enate/glut.html
+
+1. Put the file "glut32.dll" in "C:\WINDOWS\system32"
+2. Put the file "glut.h" into 
+
+C:\Program Files\Microsoft Visual Studio 10.0\VC\Include\GL
+
+3. Put the file "glut32.lib" into
+C:\Program Files\Microsoft Visual Studio 10.0\VC\lib
+
+Configure the linker using this 
+
+Project -> Configuration Properties -> Linker -> Input
+add opengl32.lib; glut32.lib; glu32.lib; in "additional dependencies"
+
+
+
+----------------------------------------
+2.2 Compiling Direct From Source
+----------------------------------------
+GLV can easily be compiled directly from source into an existing project.
+
+Make sure to pass in the following flags to the compiler:
+
+	-finline-functions (or -O3)
+	-fpeel-loops
+
+
+----------------------------------------
+2.3 Dependencies
+----------------------------------------
+GLV requires only OpenGL, GLU, and GLEW (Linux only). There are no other dependencies, unless a window binding is used, such as GLUT.
+
+
+========================================
+3. File Organization
+========================================
+
+include/	GLV headers
+src/		GLV source
+
+example/	example source demonstrating various features of GLV
+test/		unit and visual testing source
+
+doc/		documentation of GLV source, design, etc.
+
+

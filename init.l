@@ -54,18 +54,24 @@
                                                 (reverse (all-instruments)) (reverse (all-tracks)) (reverse (all-regions)))))))
 
   (def key-bindings (quote                 
-                     (("l" (project-load "project2.l"))
-
-                     ("x" (project-load "project.l"))
+                     (("l" (project-load (project-path)))
                       
-                     ("s" (project-save "project2.l"))
+                     ("s" (project-save (project-path)))
 
+                     ("1" (set-regions-length 125))
                      ("2" (set-regions-length 250))
+                     ("3" (set-regions-length 500))
+                     ("4" (set-regions-length 750))
                      
                      ("t" (let (tid fresh-track-id)
                             (track tid "untitled track")))
 
+                     ("d" (delete-selected-tracks))
+
+                     ("b" (bounce-loop))
+
                      ("a" (add-region-at-mouse))
+                     ("e" (interactive-eval))
                      )))
   
   (def handle-key (fn (sym) (let ()
