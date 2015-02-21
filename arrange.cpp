@@ -131,6 +131,12 @@ static long loop_end_point = 1000;
 void clear_fired_regions() {
   for (Track* t : active_project.tracks) {
     for (MPRegion* r : t->regions) {
+      if (r->fired && !r->stopped) {
+        Instrument* instr = active_project.instruments[r->instrument_id];
+        if (instr->type == I_MIDI) {
+          queue_midi_note(instr->note,0);
+        }
+      }
       r->fired = false;
       r->stopped = false;
     }
@@ -202,12 +208,10 @@ void audio_task()
             if (r->fired && !r->stopped && playhead>=rstop) {
               r->stopped = true;
               if (instr->type == I_MIDI) {
-                printf("midi note off: %d\n",instr->note);
+                //printf("midi note off: %d\n",instr->note);
                 queue_midi_note(instr->note,0);
               }
-            }
-            
-            if (!r->fired && playhead>=rstart && playhead<rstop) {
+            } else if (!r->fired && playhead>=rstart && playhead<rstop) {
               //printf("r: %d rstart: %ld at %ld\n",r->id,rstart,playhead);
 
               //printf("trigger %d at %d",ri,elaps);
@@ -217,7 +221,7 @@ void audio_task()
                 LydVoice* voice = lyd_voice_new(lyd, prog, 0, voice_tag++);
                 lyd_voice_set_duration(lyd, voice, 0.1);
               } else {
-                printf("midi note on: %d\n",instr->note);
+                //printf("midi note on: %d\n",instr->note);
                 queue_midi_note(instr->note,1);
               }
             }
@@ -773,7 +777,7 @@ void update_ui() {
 
     title_view = new TextView(Rect(150,10,340,30), 19.0);
     *header_view << (View*)title_view;
-    title_view->setValue("project2.l");
+    title_view->setValue("project3.l");
     
     title_view->disable(DrawBorder);
     header_view->disable(DrawBorder);
@@ -1150,6 +1154,42 @@ Cell* lisp_all_regions(Cell* args, Cell* env) {
   return r_list;
 }
 
+Cell* lisp_save_project(Cell* args, Cell* env) {
+  char* path = (char*)(car(args)->addr);
+  FILE* f = fopen(path,"wb");
+
+  char buf[1024];
+
+  printf("writing project to %s\n",path);
+  
+  if (f) {
+    sprintf(buf,"(let (project-version 1) \n");
+    fwrite(buf, 1, strlen(buf), f);
+  
+    for (Instrument* i : active_project.instruments) {
+      if (i->type == I_SAMPLE) {
+        sprintf(buf,"(instrument %d %d \"%s\")\n",i->id,i->type,i->path);
+      } else {
+        sprintf(buf,"(instrument %d %d %d)\n",i->id,i->type,i->note);
+      }
+      fwrite(buf, 1, strlen(buf), f);
+    }
+    for (Track* t : active_project.tracks) {
+      sprintf(buf, "\n(track %d \"%s\" %d %d %d)\n",t->id,t->title.c_str(),t->r,t->g,t->b);
+      fwrite(buf, 1, strlen(buf), f);
+      
+      for (MPRegion* r : t->regions) {
+        sprintf(buf,"(region %d %d %d %d %d)\n",r->id,r->track_id,r->instrument_id,r->inpoint,r->length);
+        fwrite(buf, 1, strlen(buf), f);
+      }
+    }
+  
+    sprintf(buf,")\n");
+    fwrite(buf, 1, strlen(buf), f);
+    fclose(f);
+  }
+}
+
 void file_dropped_callback(char* uri_raw) {
   printf("file_dropped_callback: %s\n",uri_raw);
 
@@ -1200,6 +1240,14 @@ Cell* lisp_project_path(Cell* args, Cell* env) {
   return c;
 }
 
+Cell* lisp_clear_project(Cell* args, Cell* env) {
+  while (active_project.tracks.size()) {
+    selected_track = active_project.tracks[active_project.tracks.size()-1];
+    delete_selected_tracks(NULL, env);
+  }
+  return alloc_nil();
+}
+
 void init_lisp_funcs() {
   init_lisp();
   
@@ -1222,6 +1270,9 @@ void init_lisp_funcs() {
   
   register_alien_func("bounce-loop",bounce_loop);
   register_alien_func("interactive-eval",lisp_eval_dialog);
+  
+  register_alien_func("project-save",lisp_save_project);
+  register_alien_func("project-clear",lisp_clear_project);
   
   register_alien_func("print",lisp_dump);
 }

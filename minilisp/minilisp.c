@@ -243,7 +243,7 @@ Cell* apply_make_str(Cell* lambda, Cell* args, Cell* env) {
     result->size = strlen(result->addr);
   } else if (arg->tag == TAG_CONS) {
     // TODO: this is really hard to figure out.
-    result = alloc_num_bytes(10*1024);
+    result = alloc_num_bytes(50*1024);
     lisp_write(arg, result->addr, result->size);
     result->size = strlen(result->addr);
   } else {
