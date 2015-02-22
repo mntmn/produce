@@ -91,18 +91,10 @@ highly recommended
 building / running
 ------------------
 
-1. install build dependencies:
-
-````apt-get install libsndfile-dev libglu1-mesa-dev libglew-dev libx11-dev libjack-jackd2-dev gcc build-essentials````
-
-2. build modified libraries:
-````./build_deps.sh````
-
-3. build produce:
-````./build.sh````
-
-4. run:
-````./produce.sh````
+1. install build dependencies: ````apt-get install libsndfile-dev libglu1-mesa-dev libglew-dev libx11-dev libjack-jackd2-dev gcc build-essentials````
+2. build modified libraries: ````./build_deps.sh````
+3. build produce: ````./build.sh````
+4. run: ````./produce.sh````
 
 license
 -------
