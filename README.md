@@ -95,7 +95,7 @@ the included ````produce```` binary and libs are built on x86_64 debian 8. no ot
 
 if you want to build yourself, do this:
 
-1. install build dependencies: ````apt-get install libsndfile-dev libgl1-mesa-dev libglu1-mesa-dev libglew-dev libx11-dev libxrandr-dev libjack-jackd2-dev g++ build-essential````
+1. install build dependencies: ````apt-get install libsndfile-dev libgl1-mesa-dev libglu1-mesa-dev libglew-dev libx11-dev libxt-dev libxrandr-dev libjack-jackd2-dev g++ build-essential````
 2. build modified libraries: ````./build_deps.sh````
 3. build produce: ````./build.sh````
 4. run: ````./produce.sh````
