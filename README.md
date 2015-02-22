@@ -100,6 +100,22 @@ if you want to build yourself, do this:
 3. build produce: ````./build.sh````
 4. run: ````./produce.sh````
 
+quickstart
+----------
+
+1. drop in some audio samples (one at a time). a track for each will be created
+2. press ````a```` while hovering over empty positions in the track; regions will be created
+3. select all regions by clicking or dragging up the selection rectangle
+4. press ````1```` to set all regions to 1/4 duration
+5. *important* by default, you will hear nothing. you need to connect produce's JACK audio outputs to your system outputs. the easiest way is to do this in ````qjackctl```` or ````gladish```` (preferred). in the latter, just drag lines from produce's audio output ports to your system output ports.
+6. press ````space```` to toggle playback. you should hear something.
+7. to add a midi octave starting with note C3 on midi port 0, press ````(````. a popup should appear. enter ````(octave 3 0)````. 12 tracks will be created, labeled with their MIDI note numbers.
+8. launch your favorite synth app (or connect a hardware synth), for example ````monobristol````, set the MIDI channel to 1 (or omni).
+9. using ````gladish````, connect produce's MIDI output port 0 to your synth.
+10. create MIDI regions by hovering over your MIDI tracks and press ````a```` to create actual notes.
+11. toggle playback using ````space```` and your synth should play back your notes.
+12. press ````s```` to save your project. next time, load it using ````l````.
+
 license / credits
 -----------------
 
