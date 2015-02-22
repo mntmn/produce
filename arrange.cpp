@@ -938,7 +938,7 @@ void update_ui() {
 
     title_view = new TextView(Rect(150,10,340,30), 19.0);
     *header_view << (View*)title_view;
-    title_view->setValue("project3.l");
+    title_view->setValue("untitled.l");
     
     title_view->disable(DrawBorder);
     header_view->disable(DrawBorder);

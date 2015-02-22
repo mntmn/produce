@@ -4,3 +4,4 @@
 *.log
 CMakeCache.txt
 .#*
+project*.l
