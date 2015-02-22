@@ -3,3 +3,4 @@
 *.wav
 *.log
 CMakeCache.txt
+.#*
