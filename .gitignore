@@ -1,3 +1,5 @@
 .monobristol.xml
 *.swp
 *.wav
+*.log
+CMakeCache.txt
