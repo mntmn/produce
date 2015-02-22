@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/mntmn/code/produce/freeglut/progs/demos/timer/timer.c
+stdio.h
+-
+GL/glut.h
+-
+
+include/GL/freeglut_std.h
+windows.h
+-
+EGL/egl.h
+-
+GLES/gl.h
+-
+GLES2/gl2.h
+-
+OpenGL/gl.h
+-
+OpenGL/glu.h
+-
+GL/gl.h
+-
+GL/glu.h
+-
+stdlib.h
+-
+
+include/GL/glut.h
+freeglut_std.h
+include/GL/freeglut_std.h
+

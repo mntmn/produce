@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -pedantic    CMakeFiles/Fractals_random.dir/progs/demos/Fractals_random/fractals_random.c.o  -o bin/Fractals_random -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.so.3.10.0 -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -Wl,-rpath,/home/mntmn/code/produce/freeglut/lib 

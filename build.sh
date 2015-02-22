@@ -1,1 +1,1 @@
-g++ -g -L./custom_freeglut arrange.cpp x11.cpp minilisp/bignum.o minilisp/reader.o minilisp/minilisp.o -I/usr/local/include/GLV -L/usr/local/lib/ -lsndfile -lGLV -lGL -lGLU -lglut -lGLEW -lpthread -lX11 -lXt -ljack -std=gnu++11 -Wno-write-strings -fpermissive -o produce
+g++ -g -I./freeglut/include -L./freeglut/lib -I./custom_glv/include -L./custom_glv/lib arrange.cpp x11.cpp minilisp/bignum.o minilisp/reader.o minilisp/minilisp.o -lsndfile -lGLV -lGL -lGLU -lglut -lGLEW -lpthread -lX11 -ljack -std=gnu++11 -Wno-write-strings -fpermissive -o produce

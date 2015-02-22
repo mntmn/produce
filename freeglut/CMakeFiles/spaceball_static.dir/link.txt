@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -pedantic    CMakeFiles/spaceball_static.dir/progs/demos/spaceball/spaceball.c.o CMakeFiles/spaceball_static.dir/progs/demos/spaceball/vmath.c.o  -o bin/spaceball_static -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.a -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi 

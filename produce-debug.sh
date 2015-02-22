@@ -1,1 +1,1 @@
-LD_LIBRARY_PATH=./custom_freeglut gdb ./produce
+LD_LIBRARY_PATH=./freeglut/lib:./custom_glv/lib gdb ./produce $1

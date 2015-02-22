@@ -1,0 +1,96 @@
+Determining if files usbhid.h exist failed with the following output:
+Change Dir: /home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec1506013151/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1506013151.dir/build.make CMakeFiles/cmTryCompileExec1506013151.dir/build
+make[1]: Entering directory '/home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1506013151.dir/CheckIncludeFiles.c.o
+/usr/bin/cc   -Wall -pedantic    -o CMakeFiles/cmTryCompileExec1506013151.dir/CheckIncludeFiles.c.o   -c /home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp/CheckIncludeFiles.c
+/home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp/CheckIncludeFiles.c:2:20: fatal error: usbhid.h: No such file or directory
+ #include <usbhid.h>
+                    ^
+compilation terminated.
+CMakeFiles/cmTryCompileExec1506013151.dir/build.make:57: recipe for target 'CMakeFiles/cmTryCompileExec1506013151.dir/CheckIncludeFiles.c.o' failed
+make[1]: *** [CMakeFiles/cmTryCompileExec1506013151.dir/CheckIncludeFiles.c.o] Error 1
+make[1]: Leaving directory '/home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec1506013151/fast' failed
+make: *** [cmTryCompileExec1506013151/fast] Error 2
+
+Source:
+/* */
+#include <usbhid.h>
+
+
+int main(){return 0;}
+
+Determining if the function XParseGeometry exists failed with the following output:
+Change Dir: /home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec2174243021/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2174243021.dir/build.make CMakeFiles/cmTryCompileExec2174243021.dir/build
+make[1]: Entering directory '/home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2174243021.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -Wall -pedantic -DCHECK_FUNCTION_EXISTS=XParseGeometry   -o CMakeFiles/cmTryCompileExec2174243021.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.0/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec2174243021
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2174243021.dir/link.txt --verbose=1
+/usr/bin/cc   -Wall -pedantic -DCHECK_FUNCTION_EXISTS=XParseGeometry    CMakeFiles/cmTryCompileExec2174243021.dir/CheckFunctionExists.c.o  -o cmTryCompileExec2174243021 -rdynamic -lm 
+CMakeFiles/cmTryCompileExec2174243021.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x15): undefined reference to `XParseGeometry'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTryCompileExec2174243021.dir/build.make:88: recipe for target 'cmTryCompileExec2174243021' failed
+make[1]: *** [cmTryCompileExec2174243021] Error 1
+make[1]: Leaving directory '/home/mntmn/code/FreeGLUT/freeglut/freeglut/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec2174243021/fast' failed
+make: *** [cmTryCompileExec2174243021/fast] Error 2
+
+
+Determining if files usbhid.h exist failed with the following output:
+Change Dir: /home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec1114720536/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1114720536.dir/build.make CMakeFiles/cmTryCompileExec1114720536.dir/build
+make[1]: Entering directory '/home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1114720536.dir/CheckIncludeFiles.c.o
+/usr/bin/cc   -Wall -pedantic    -o CMakeFiles/cmTryCompileExec1114720536.dir/CheckIncludeFiles.c.o   -c /home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp/CheckIncludeFiles.c
+/home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp/CheckIncludeFiles.c:2:20: fatal error: usbhid.h: No such file or directory
+ #include <usbhid.h>
+                    ^
+compilation terminated.
+CMakeFiles/cmTryCompileExec1114720536.dir/build.make:57: recipe for target 'CMakeFiles/cmTryCompileExec1114720536.dir/CheckIncludeFiles.c.o' failed
+make[1]: *** [CMakeFiles/cmTryCompileExec1114720536.dir/CheckIncludeFiles.c.o] Error 1
+make[1]: Leaving directory '/home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp'
+Makefile:118: recipe for target 'cmTryCompileExec1114720536/fast' failed
+make: *** [cmTryCompileExec1114720536/fast] Error 2
+
+Source:
+/* */
+#include <usbhid.h>
+
+
+int main(){return 0;}
+
+Determining if the function XParseGeometry exists failed with the following output:
+Change Dir: /home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec2383193586/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2383193586.dir/build.make CMakeFiles/cmTryCompileExec2383193586.dir/build
+make[1]: Entering directory '/home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2383193586.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -Wall -pedantic -DCHECK_FUNCTION_EXISTS=XParseGeometry   -o CMakeFiles/cmTryCompileExec2383193586.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.0/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec2383193586
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2383193586.dir/link.txt --verbose=1
+/usr/bin/cc   -Wall -pedantic -DCHECK_FUNCTION_EXISTS=XParseGeometry    CMakeFiles/cmTryCompileExec2383193586.dir/CheckFunctionExists.c.o  -o cmTryCompileExec2383193586 -rdynamic -lm 
+CMakeFiles/cmTryCompileExec2383193586.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x15): undefined reference to `XParseGeometry'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTryCompileExec2383193586.dir/build.make:88: recipe for target 'cmTryCompileExec2383193586' failed
+make[1]: Leaving directory '/home/mntmn/code/produce/freeglut/CMakeFiles/CMakeTmp'
+make[1]: *** [cmTryCompileExec2383193586] Error 1
+Makefile:118: recipe for target 'cmTryCompileExec2383193586/fast' failed
+make: *** [cmTryCompileExec2383193586/fast] Error 2
+
+

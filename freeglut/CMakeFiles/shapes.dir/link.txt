@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -pedantic    CMakeFiles/shapes.dir/progs/demos/shapes/shapes.c.o CMakeFiles/shapes.dir/progs/demos/shapes/glmatrix.c.o  -o bin/shapes -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.so.3.10.0 -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -Wl,-rpath,/home/mntmn/code/produce/freeglut/lib 

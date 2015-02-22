@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -pedantic    CMakeFiles/multi-touch_static.dir/progs/demos/multi-touch/multi-touch.c.o  -o bin/multi-touch_static -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.a -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi 

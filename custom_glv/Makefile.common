@@ -69,7 +69,7 @@ EXT_LDFLAGS	?=
 # Default paths
 
 #--------------------------------------------------------------------------
-PREFIX		= /usr/local/
+#PREFIX		= /usr/local/
 CONFPREFIX	= $(PREFIX)/etc/
 MANPREFIX	= $(PREFIX)/share/man/
 

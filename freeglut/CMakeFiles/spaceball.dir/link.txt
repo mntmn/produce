@@ -1,0 +1,1 @@
+/usr/bin/cc   -Wall -pedantic    CMakeFiles/spaceball.dir/progs/demos/spaceball/spaceball.c.o CMakeFiles/spaceball.dir/progs/demos/spaceball/vmath.c.o  -o bin/spaceball -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.so.3.10.0 -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -Wl,-rpath,/home/mntmn/code/produce/freeglut/lib 

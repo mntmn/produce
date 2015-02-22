@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/mntmn/code/produce/freeglut/progs/demos/One/one.c
+stdio.h
+-
+stdlib.h
+-
+GL/freeglut.h
+-
+
+include/GL/freeglut.h
+freeglut_std.h
+include/GL/freeglut_std.h
+freeglut_ext.h
+include/GL/freeglut_ext.h
+
+include/GL/freeglut_ext.h
+stdarg.h
+-
+
+include/GL/freeglut_std.h
+windows.h
+-
+EGL/egl.h
+-
+GLES/gl.h
+-
+GLES2/gl2.h
+-
+OpenGL/gl.h
+-
+OpenGL/glu.h
+-
+GL/gl.h
+-
+GL/glu.h
+-
+stdlib.h
+-
+

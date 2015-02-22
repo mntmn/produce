@@ -1,0 +1,1 @@
+/usr/bin/c++       CMakeFiles/Resizer_static.dir/progs/demos/Resizer/Resizer.cpp.o  -o bin/Resizer_static -rdynamic -lGLU -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi -lm lib/libglut.a -lGL -lm -lSM -lICE -lX11 -lXext -lXrandr -lXxf86vm -lXi 
