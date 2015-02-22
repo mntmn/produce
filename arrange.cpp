@@ -12,16 +12,13 @@
 
 #include "arrange.h"
 
+#include <sndfile.h>
+
 extern "C" {
-#include <lyd/lyd.h>
 #include "minilisp/minilisp.h"
 #include "minilisp/reader.h"
 #include "misc.c"
 }
-
-extern "C" void init_midi();
-extern "C" void send_midi();
-extern "C" void queue_midi_note(int note, int note_on, int port, char channel, int velocity);
 
 extern void x11_stuff_init();
 extern void x11_exit_cleanup();
@@ -48,7 +45,8 @@ struct Instrument {
   int note;
   int midi_port;
   int midi_channel;
-  LydProgram* lyd; // compiled instrument
+  float* pcm;
+  uint32_t pcm_size;
 };
 
 struct MPRegion {
@@ -93,33 +91,78 @@ static int bounce_enabled = 0;
 #define QUANTUM_NANOSEC 10000L
 static int running = 1;
 
-static int wave_handler (Lyd *lyd, const char *wavename, void *user_data)
-{
-  SNDFILE *infile;
-  SF_INFO  sfinfo;
+#include <stdio.h>
+#include <jack/jack.h>
+#include <jack/midiport.h>
+#include <string.h>
 
-  sfinfo.format = 0;
-  if (!(infile = sf_open(wavename, SFM_READ, &sfinfo)))
-  {
-    float data[10];
-    lyd_load_wave(lyd, wavename, 10, 400, data);
-    printf ("-- lyd_load_wave: failed to open file %s\n", wavename);
-    sf_perror (NULL);
-    return 1;
-  }
+#define MIDI_NOTE_ON		0x90
+#define MIDI_NOTE_OFF		0x80
 
-  {
-    float *data = (float*)malloc(sfinfo.frames * sizeof (float));
-    sf_read_float (infile, data, sfinfo.frames);
-    lyd_load_wave (lyd, wavename, sfinfo.frames, sfinfo.samplerate, data);
-    free (data);
-    sf_close (infile);
-    printf ("-- lyd_load_wave: loaded %s\n", wavename);
+#define NUM_MIDI_PORTS  8
+#define MAX_MIDI_QUEUE_LEN 64
+
+#define NUM_AUDIO_PORTS  16
+
+#define JACK_BUFSIZE 1024
+
+jack_port_t* midi_output_ports[NUM_MIDI_PORTS];
+void* midi_port_buffers[NUM_MIDI_PORTS];
+
+jack_port_t* audio_output_ports[NUM_AUDIO_PORTS];
+void* audio_port_buffers[NUM_AUDIO_PORTS];
+
+jack_client_t	*jack_client = NULL;
+
+struct MidiMessage {
+  jack_nframes_t time;
+  int len;
+  unsigned char data[3];
+};
+
+struct MidiEvent {
+  int note;
+  int note_on;
+  int port;
+  int channel;
+  int velocity;
+};
+
+
+void send_midi(int note, int note_on, int port, char channel, int velocity) {
+  unsigned char  *buffer;
+  jack_nframes_t	last_frame_time;
+  struct MidiMessage ev;
+
+  channel = 0;
+
+  void* port_buffer = midi_port_buffers[port];
+
+  ev.len = 3;
+
+  printf("send_midi: %d %d %d %d %d\n",note,note_on,port,channel,velocity);
+  
+  if (note_on) {
+    ev.data[0] = MIDI_NOTE_ON + channel;
+  } else {
+    ev.data[0] = MIDI_NOTE_OFF + channel;
   }
-  return 0;
+  ev.data[1] = note; // c3
+  ev.data[2] = velocity; // velocity
+
+  if (port_buffer == NULL) {
+    printf("jack_port_get_buffer failed, cannot send anything.\n");
+    return;
+  }
+  
+  buffer = jack_midi_event_reserve(port_buffer, 0, ev.len);
+  if (buffer == NULL) {
+    printf("jack_midi_event_reserve (1) failed, NOTE ON LOST.\n");
+    return;
+  }
+  memcpy(buffer, ev.data, 3);
 }
 
-static Lyd *lyd = lyd_new();
 static long playhead = 0;
 // beat = 1/4 bar
 // if bar = 2s, then beat = 0.5s; minute = 60*2 beats; 120bpm
@@ -129,116 +172,227 @@ static float bpm = 120.0;
 static long loop_start_point = 0;
 static long loop_end_point = 1000;
 
-void clear_fired_regions() {
-  for (Track* t : active_project.tracks) {
-    for (MPRegion* r : t->regions) {
-      if (r->fired && !r->stopped) {
-        Instrument* instr = active_project.instruments[r->instrument_id];
-        if (instr->type == I_MIDI) {
-          queue_midi_note(instr->note,0,instr->midi_port,instr->midi_channel,127);
-        }
-      }
-      r->fired = false;
-      r->stopped = false;
-    }
-  }
-}
+long playhead_samples = 0;
 
-void audio_task()
+static int playback_clean_up = 0;
+
+int jack_process_callback(jack_nframes_t nframes, void *notused)
 {
-  if (!lyd_audio_init(lyd, "auto"))
-  {
-    lyd_free (lyd);
-    printf ("failed to initialize lyd (audio output)\n");
-    return;
+  for (int i=0; i<NUM_MIDI_PORTS; i++) {
+    jack_midi_clear_buffer(midi_port_buffers[i]);
   }
 
-  struct timespec tim, tim2;
-  tim.tv_sec = 0;
-  tim.tv_nsec = QUANTUM_NANOSEC;
-  
-  struct timespec start_time;
-  struct timespec last_time;
-
-  int voice_tag = 1;
-  
-  clock_gettime(CLOCK_REALTIME, &start_time);
-  while (running) {
-    last_time.tv_nsec = start_time.tv_nsec;
-    clock_gettime(CLOCK_REALTIME, &start_time);
-    long delta = start_time.tv_nsec-last_time.tv_nsec;
-    float bpm_factor = 240.0/bpm;
-    
-    if (delta<0) {
-      //printf("delta fixed\n");
-      delta = 65000; // FIXME
+  /*if (events_queued) {
+    for (int i=0; i<events_queued; i++) {
+      send_midi(event_queue[i].note, event_queue[i].note_on, event_queue[i].port, event_queue[i].channel, event_queue[i].velocity);
     }
-    //printf("delta: %ld pb: %d\n",delta,playback_enabled);
+    events_queued = 0;
+    }*/
+  
 
-    if (playback_enabled) {
-      //printf("delta: %ld playhead: %ld pb: %d\n",delta,playhead,playback_enabled);
-      playhead += delta;
-      if (playhead>loop_end_point*bpm_factor*TMUL) {
-        playhead = loop_start_point*bpm_factor*TMUL;
-        printf("looped to %d\n",playhead);
+  //printf("out buffer: %p\n",out);
+  // playhead is in nanoseconds (?)
+
+  float bpm_factor = 240.0/bpm;
+  long delta = TMUL*((double)nframes/48.0);
+
+  //printf("delta: %ld playback: %d\n",delta,playback_enabled);
+
+  if (playback_enabled) {
+    playhead += delta;
+    
+    if (playhead>loop_end_point*bpm_factor*TMUL) {
+      playhead = loop_start_point*bpm_factor*TMUL;
+      printf("looped to %d\n",playhead);
         
-        // looped.
-        // clear fired flags of regions
-        clear_fired_regions();
+      // looped.
+      // clear fired flags of regions
+      playback_clean_up = 1;
 
-        if (bounce_enabled) {
-          playback_enabled = 0;
-          bounce_enabled = 0;
-          printf("-- finished bounce.\n");
-        }
+      if (bounce_enabled) {
+        playback_enabled = 0;
+        bounce_enabled = 0;
+        printf("-- finished bounce.\n");
       }
-      //printf("elaps: %ld\n",elaps);
+    }
+    //printf("elaps: %ld\n",elaps);
+    playhead_samples = playhead/TMUL*48.0;
+    printf("sample pos: %ld\n",playhead_samples);
 
-      for (Track* t : active_project.tracks) {
-        for (MPRegion* r : t->regions) {
-          long rstart = (long)r->inpoint * TMUL * bpm_factor;
-          long rstop  = rstart + ((long)r->length/2 * TMUL * bpm_factor); // FIXME: why is /2 correct?!?
-          //printf("playhead: %ld rstart: %ld rstop: %ld\n",playhead,rstart,rstop);
+    int audio_port_idx = 0;
+    int ti = 0;
 
-          if (active_project.instruments.size()<=r->instrument_id) {
-            printf("error: track has non-existing instrument id %d\n",r->instrument_id);
-          } else {
+    for (Track* t : active_project.tracks) {
+      float* audio_out = NULL;
+      
+      Instrument* default_instr = active_project.instruments[ti];
+
+      if (default_instr->type == I_SAMPLE) {
+        audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
+        memset(audio_out, 0, nframes*sizeof(float));
+        
+        audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
+      }
+      
+      for (MPRegion* r : t->regions) {
+        long rstart = (long)r->inpoint * TMUL * bpm_factor;
+        long rstop  = rstart + ((long)r->length/2 * TMUL * bpm_factor); // FIXME: why is /2 correct?!?
+
+        if (active_project.instruments.size()<=r->instrument_id) {
+          printf("error: track has non-existing instrument id %d\n",r->instrument_id);
+        } else {
           
-            Instrument* instr = active_project.instruments[r->instrument_id];
+          Instrument* instr = active_project.instruments[r->instrument_id];
 
-            if (r->fired && !r->stopped && playhead>=rstop) {
-              r->stopped = true;
-              if (instr->type == I_MIDI) {
-                //printf("midi note off: %d\n",instr->note);
-                queue_midi_note(instr->note,0,instr->midi_port,instr->midi_channel,127);
-              }
-            } else if (!r->fired && playhead>=rstart && playhead<rstop) {
-              //printf("r: %d rstart: %ld at %ld\n",r->id,rstart,playhead);
-
-              //printf("trigger %d at %d",ri,elaps);
-              r->fired = true;
-              if (instr->type == I_SAMPLE) {
-                LydProgram* prog = instr->lyd;
-                LydVoice* voice = lyd_voice_new(lyd, prog, 0, voice_tag++);
-                lyd_voice_set_duration(lyd, voice, 0.1);
-                printf("sample voice fired: %s\n",instr->path);
-              } else {
-                //printf("midi note on: %d\n",instr->note);
-                queue_midi_note(instr->note,1,instr->midi_port,instr->midi_channel,127);
-              }
+          if (r->fired && !r->stopped && playhead>=rstop) {
+            r->stopped = true;
+            if (instr->type == I_MIDI) {
+              send_midi(instr->note,0,instr->midi_port,instr->midi_channel,127);
             }
+          } else if (!r->fired && playhead>=rstart && playhead<rstop) {
+            if (instr->type == I_SAMPLE) {
+              //printf("sample voice fired: %s rstart: %ld\n",instr->path,rstart);
 
+              long offset = playhead_samples - (rstart*48)/TMUL;
+
+              if (offset<instr->pcm_size) {
+                int size = nframes;
+                if (instr->pcm_size<=offset+nframes) {
+                  size = instr->pcm_size-offset;
+                  r->fired = true;
+                  //printf("-- sample ended %s\n",instr->path);
+                }
+                
+                //printf("port: %d offset in sample: %d pcm_size: %d copy_size: %d\n",audio_port_idx-1,offset,instr->pcm_size,size);
+                if (audio_out) {
+                  memcpy(audio_out, instr->pcm+offset, size*sizeof(float));
+                }
+              }
+            } else {
+              r->fired = true;
+              send_midi(instr->note,1,instr->midi_port,instr->midi_channel,127);
+            }
+          }
+
+        }
+      } // end region loop
+
+      ti++;
+    } // end track loop
+  }
+
+  if (playback_clean_up) {
+    playback_clean_up = 0;
+    int audio_port_idx = 0;
+    int ti = 0;
+    for (Track* t : active_project.tracks) {
+      float* audio_out = NULL;
+      
+      Instrument* default_instr = active_project.instruments[ti];
+
+      if (default_instr->type == I_SAMPLE) {
+        // clear all the buffers
+        audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
+        memset(audio_out, 0, nframes*sizeof(float));
+        
+        audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
+      }
+      
+      for (MPRegion* r : t->regions) {
+        if (r->fired && !r->stopped) {
+          Instrument* instr = active_project.instruments[r->instrument_id];
+          if (instr->type == I_MIDI) {
+            send_midi(instr->note,0,instr->midi_port,instr->midi_channel,127);
           }
         }
+        r->fired = false;
+        r->stopped = false;
       }
+
+      ti++;
     }
-    
-    nanosleep(&tim, &tim2);
   }
   
-  //lyd_program_free(instrument);
-  lyd_free (lyd);
-  //return 0;
+  /*if (out[0]) {
+    printf("! ");
+    for (int i=0; i<128; i++) {
+      printf("%04x ",out[i]);
+    }
+    printf("\n");
+    }*/
+  
+  
+	return 0;
+}
+
+void init_jack() {
+	jack_client = jack_client_open("produce_midi_client", JackNullOption, NULL);
+
+	if (jack_client == NULL) {
+		printf("MIDI: Could not connect to the JACK server; run jackd first?\n");
+		return;
+	}
+
+  for (int i=0; i<NUM_MIDI_PORTS; i++) {
+    char buf[64];
+    sprintf(buf,"produce_midi_out_%d",i);
+    midi_output_ports[i] = jack_port_register(
+      jack_client,
+      buf,
+      JACK_DEFAULT_MIDI_TYPE,
+      JackPortIsOutput,
+      0);
+    printf("JACK MIDI: output port %d %p\n",i,midi_output_ports[i]);
+    midi_port_buffers[i] = jack_port_get_buffer(midi_output_ports[i], JACK_BUFSIZE);
+  }
+  
+  for (int i=0; i<NUM_AUDIO_PORTS; i++) {
+    char buf[64];
+    sprintf(buf,"produce_audio_out_%d",i);
+    audio_output_ports[i] = jack_port_register(
+      jack_client,
+      buf,
+      JACK_DEFAULT_AUDIO_TYPE,
+      JackPortIsOutput,
+      0);
+    printf("JACK Audio: output port %d %p\n",i,audio_output_ports[i]);
+    //audio_port_buffers[i] = jack_port_get_buffer(audio_output_ports[i], JACK_BUFSIZE);
+  }
+  
+	if (jack_set_process_callback(jack_client, jack_process_callback, 0)) {
+		printf("JACK: Could not register JACK process callback.\n");
+		exit(1);
+	}
+  
+
+	if (jack_activate(jack_client)) {
+		printf("JACK: Cannot activate JACK client.\n");
+    exit(1);
+	}
+}
+
+static int load_wave_file(Instrument* instr, const char *wavename)
+{
+  SNDFILE *infile;
+  SF_INFO  sfinfo;
+
+  sfinfo.format = 0;
+  if (!(infile = sf_open(wavename, SFM_READ, &sfinfo)))
+  {
+    printf ("-- load_wave_file: failed to open file %s\n");
+    sf_perror (NULL);
+    return 1;
+  }
+
+  float *data = (float*)malloc(sfinfo.frames * sizeof(float));
+  sf_read_float(infile, data, sfinfo.frames);
+
+  instr->pcm = data;
+  instr->pcm_size = sfinfo.frames;
+  
+  sf_close(infile);
+  printf ("-- load_wave_file: loaded %s %d\n", wavename, instr->pcm_size);
+  return 0;
 }
 
 GLV glv_root;
@@ -295,7 +449,7 @@ int old_track_dy = 0;
 View* hover_track_view = NULL;
 
 void toggle_playback() {
-  clear_fired_regions();
+  playback_clean_up = 1;
   playback_enabled = 1-playback_enabled;
 }
 
@@ -371,7 +525,7 @@ void select_regions_in_rect(Rect& rect) {
         shifted.posAdd(t->view->left(), t->view->top());
       
         if (shifted.intersects(rect)) {
-          printf("intersects: %f %f %f %f\n",r->view->left(),r->view->top(),r->view->width(),r->view->height());
+          //printf("intersects: %f %f %f %f\n",r->view->left(),r->view->top(),r->view->width(),r->view->height());
           r->selected = true;
         }
       }
@@ -658,18 +812,14 @@ Cell* external_edit_selected_region(Cell* args, Cell* env) {
   string cmd = "mhwaveedit --driver jack \""+string(instr->path)+"\"";
   system(cmd.c_str());
 
-  // reload
-  if (instr->code) {
-    instr->lyd = lyd_compile(lyd, instr->code);
-    printf("-- recompiled instrument %s\n",instr->code);
-  }
-  
+  // TODO: reload audio
+
   return alloc_nil();
 }
 
 bool on_root_keydown(View * v, GLV& glv) {
   char k = glv.keyboard().key();
-  printf("key: %d %d %d\n",k,glv.keyboard().ctrl(),glv.keyboard().alt());
+  //printf("key: %d %d %d\n",k,glv.keyboard().ctrl(),glv.keyboard().alt());
 
   // FIXME
   
@@ -894,8 +1044,7 @@ Cell* add_instrument(Cell* args, Cell* env) {
   char* code = NULL;
 
   if (type == I_SAMPLE) {
-    code = (char*)malloc(strlen(path)+128);
-    sprintf(code,"wave('%s') * 0.5",path);
+    
   } else {
     path = "";
     note = (car(cdr(cdr(args)))->value);
@@ -912,8 +1061,8 @@ Cell* add_instrument(Cell* args, Cell* env) {
     channel
   };
 
-  if (code) {
-    i->lyd = lyd_compile(lyd, code);
+  if (type == I_SAMPLE) {
+    load_wave_file(i, i->path);
   }
   
   active_project.instruments.push_back(i);
@@ -1045,7 +1194,7 @@ Cell* bounce_loop(Cell* args, Cell* env) {
   float bpm_factor = 240.0/bpm;
     
   playback_enabled = 0;
-  clear_fired_regions();
+  playback_clean_up = 1;
   
   char buf[1024];
   // 2 seconds padding
@@ -1233,7 +1382,7 @@ void file_dropped_callback(char* uri_raw) {
     sprintf(converted_path, "%s.conv.wav", path);
 
     char buf2[2048];
-    sprintf(buf2,"sox \"%s\" -r 44100 -b 16 -c 1 \"%s\"",path,converted_path);
+    sprintf(buf2,"sox \"%s\" -r 48000 -b 16 -c 1 \"%s\"",path,converted_path);
     printf("converting WAV: [%s]\n",buf2);
     system(buf2);
 
@@ -1342,11 +1491,9 @@ void ui_update_task() {
 }
 
 int main(int argc, char **argv) {
-  lyd_set_wave_handler(lyd, wave_handler, NULL);
-  
   init_lisp_funcs();
 
-  init_midi();
+  init_jack();
   
   win_w = 1800;
   win_h = 1000;
@@ -1379,7 +1526,6 @@ int main(int argc, char **argv) {
   x11_stuff_init();
 
   std::thread t1(ui_update_task);
-  std::thread t2(audio_task);
   
   playback_enabled = 0;
 
