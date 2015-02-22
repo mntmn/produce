@@ -26,7 +26,8 @@
                      ("b" (bounce-loop))
 
                      ("a" (add-region-at-mouse))
-                     ("e" (interactive-eval))
+                     ("e" (edit-region-external))
+                     ("(" (interactive-eval))
                      )))
   
   (def handle-key (fn (sym) (let ()

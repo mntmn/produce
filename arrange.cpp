@@ -21,7 +21,7 @@ extern "C" {
 
 extern "C" void init_midi();
 extern "C" void send_midi();
-extern "C" void queue_midi_note(int note, int note_on);
+extern "C" void queue_midi_note(int note, int note_on, int port, char channel, int velocity);
 
 extern void x11_stuff_init();
 extern void x11_exit_cleanup();
@@ -46,6 +46,7 @@ struct Instrument {
   char* path;
   char* code; // instrument source code
   int note;
+  int midi_port;
   int midi_channel;
   LydProgram* lyd; // compiled instrument
 };
@@ -102,7 +103,7 @@ static int wave_handler (Lyd *lyd, const char *wavename, void *user_data)
   {
     float data[10];
     lyd_load_wave(lyd, wavename, 10, 400, data);
-    printf ("failed to open file %s\n", wavename);
+    printf ("-- lyd_load_wave: failed to open file %s\n", wavename);
     sf_perror (NULL);
     return 1;
   }
@@ -113,7 +114,7 @@ static int wave_handler (Lyd *lyd, const char *wavename, void *user_data)
     lyd_load_wave (lyd, wavename, sfinfo.frames, sfinfo.samplerate, data);
     free (data);
     sf_close (infile);
-    printf ("loaded %s\n", wavename);
+    printf ("-- lyd_load_wave: loaded %s\n", wavename);
   }
   return 0;
 }
@@ -134,7 +135,7 @@ void clear_fired_regions() {
       if (r->fired && !r->stopped) {
         Instrument* instr = active_project.instruments[r->instrument_id];
         if (instr->type == I_MIDI) {
-          queue_midi_note(instr->note,0);
+          queue_midi_note(instr->note,0,instr->midi_port,instr->midi_channel,127);
         }
       }
       r->fired = false;
@@ -209,7 +210,7 @@ void audio_task()
               r->stopped = true;
               if (instr->type == I_MIDI) {
                 //printf("midi note off: %d\n",instr->note);
-                queue_midi_note(instr->note,0);
+                queue_midi_note(instr->note,0,instr->midi_port,instr->midi_channel,127);
               }
             } else if (!r->fired && playhead>=rstart && playhead<rstop) {
               //printf("r: %d rstart: %ld at %ld\n",r->id,rstart,playhead);
@@ -220,9 +221,10 @@ void audio_task()
                 LydProgram* prog = instr->lyd;
                 LydVoice* voice = lyd_voice_new(lyd, prog, 0, voice_tag++);
                 lyd_voice_set_duration(lyd, voice, 0.1);
+                printf("sample voice fired: %s\n",instr->path);
               } else {
                 //printf("midi note on: %d\n",instr->note);
-                queue_midi_note(instr->note,1);
+                queue_midi_note(instr->note,1,instr->midi_port,instr->midi_channel,127);
               }
             }
 
@@ -270,11 +272,11 @@ void zoom_out_x() {
 }
 
 void scroll_left() {
-  scroll_x += 250;
+  scroll_x += 1000;
 }
 
 void scroll_right() {
-  scroll_x -= 250;
+  scroll_x -= 1000;
 }
 
 enum mouse_state_t {
@@ -634,12 +636,12 @@ bool on_track_mousedown(View* v, GLV& glv) {
   selection_rect->width(1);
   selection_rect->height(1);
 
-  printf("track mousedown %d %d\n",drag_x1,drag_y1);
+  //printf("track mousedown %d %d\n",drag_x1,drag_y1);
 
   hover_track_view = glv_root.findTarget(x, y);
   selected_track = view_to_track(hover_track_view);
   if (selected_track) {
-    printf("selected_track: %p (id: %d)\n",selected_track,selected_track->id);
+    //printf("selected_track: %p (id: %d)\n",selected_track,selected_track->id);
   }
   
   if (!glv.keyboard().shift()) {
@@ -656,6 +658,12 @@ Cell* external_edit_selected_region(Cell* args, Cell* env) {
   string cmd = "mhwaveedit --driver jack \""+string(instr->path)+"\"";
   system(cmd.c_str());
 
+  // reload
+  if (instr->code) {
+    instr->lyd = lyd_compile(lyd, instr->code);
+    printf("-- recompiled instrument %s\n",instr->code);
+  }
+  
   return alloc_nil();
 }
 
@@ -702,7 +710,7 @@ bool on_root_keydown(View * v, GLV& glv) {
 static int song_bars = 4*100;
 
 char* make_track_label(Track* t) {
-  printf("-- make_track_label %d\n",t->id);
+  //printf("-- make_track_label %d\n",t->id);
   char tmp[128];
   if (t->type == TRACK_MIDI) {
     snprintf(t->label, 255, "%02d MIDI %s", t->id, t->title.c_str());
@@ -718,7 +726,7 @@ char* make_track_label(Track* t) {
     
     snprintf(t->label, 255, "%02d %s", t->id, tmp);
   }
-  printf("track %d label: %s\n",t->id,t->label);
+  //printf("track %d label: %s\n",t->id,t->label);
   return t->label;
 }
 
@@ -726,10 +734,13 @@ void update_ui() {
   Project& p = active_project;
   float bpm_factor = 240.0/bpm;
 
+  win_w = 2560;
+  win_h = 1600;
+
   glv_root.disable(DrawBack);
 	
   if (!tracks_view) {
-    tracks_view = new View(Rect(0,100, 2560, 2000));
+    tracks_view = new View(Rect(0,100, win_w, win_h));
     tracks_view->colors().set(Color(0.2,0.4,1,0.8), 1.0);
     tracks_view->disable(DrawBack);
     tracks_view->disable(DrawBorder);
@@ -840,7 +851,7 @@ void update_ui() {
       l->set(Rect(5,5,100,track_h));
       *t->view << *l;
       
-      printf("track view added: %x\n",t->view);
+      //printf("track view added: %x\n",t->view);
     } else {
       if (selected_track == t) {
         t->view->enable(DrawBack);
@@ -877,6 +888,8 @@ Cell* add_instrument(Cell* args, Cell* env) {
   instrument_type_t type = (instrument_type_t)car(cdr(args))->value;
   char* path = (char*)(car(cdr(cdr(args)))->addr);
   int note = 0;
+  int port = 0;
+  int channel = 0;
   
   char* code = NULL;
 
@@ -886,6 +899,7 @@ Cell* add_instrument(Cell* args, Cell* env) {
   } else {
     path = "";
     note = (car(cdr(cdr(args)))->value);
+    port = (car(cdr(cdr(cdr(args))))->value);
   }
   
   Instrument* i = new Instrument {
@@ -893,13 +907,15 @@ Cell* add_instrument(Cell* args, Cell* env) {
     type,
     path,
     code,
-    note
+    note,
+    port,
+    channel
   };
 
   if (code) {
     i->lyd = lyd_compile(lyd, code);
-
   }
+  
   active_project.instruments.push_back(i);
 
   printf("add_instrument: %d %s\n",id,path);
@@ -932,7 +948,7 @@ Cell* add_audio_track(Cell* args, Cell* env) {
     b = (car(cdr(cdr(cdr(cdr(args))))))->value;
   }
 
-  printf("add_audio_track: %d %s\n",id,name);
+  //printf("add_audio_track: %d %s\n",id,name);
   
   Track* t = new Track {id, TRACK_AUDIO, name, r, g, b};
   
@@ -988,10 +1004,16 @@ Cell* delete_selected_tracks(Cell* args, Cell* env) {
 
 Cell* add_midi_octave(Cell* args, Cell* env) {
   int octave = 3;
-  int channel = 2;
+  int port = 0;
+  int channel = 1;
 
   if (car(args) && car(args)->tag == TAG_INT) {
     octave = car(args)->value;
+
+    args = cdr(args);
+    if (car(args) && car(args)->tag == TAG_INT) {
+      port = car(args)->value;
+    }
   }
   
   int note = octave*12;
@@ -999,7 +1021,7 @@ Cell* add_midi_octave(Cell* args, Cell* env) {
   for (int i=0; i<12; i++) {
     int r = 0;
     int g = 7;
-    int b = 2;
+    int b = (2+2*port)%10;
     
     char name[64];
     sprintf(name,"M%d N%d",channel,note);
@@ -1011,7 +1033,7 @@ Cell* add_midi_octave(Cell* args, Cell* env) {
 
     // make instrument
 
-    Instrument* instr = new Instrument {id, I_MIDI, name, "", note}, channel;
+    Instrument* instr = new Instrument {id, I_MIDI, name, "", note, port, channel};
     active_project.instruments.push_back(instr);
     
     note++;
@@ -1122,7 +1144,7 @@ Cell* lisp_all_instruments(Cell* args, Cell* env) {
     if (i->type == I_SAMPLE) {
       snprintf(buf,1023,"(instrument %d %d \"%s\")",i->id,i->type,i->path);
     } else {
-      snprintf(buf,1023,"(instrument %d %d %d)",i->id,i->type,i->note);
+      snprintf(buf,1023,"(instrument %d %d %d %d %d)",i->id,i->type,i->note,i->midi_port,i->midi_channel);
     }
     Cell* r_cell = read_string(buf);
     r_list = append(r_cell, r_list);
@@ -1170,7 +1192,7 @@ Cell* lisp_save_project(Cell* args, Cell* env) {
       if (i->type == I_SAMPLE) {
         sprintf(buf,"(instrument %d %d \"%s\")\n",i->id,i->type,i->path);
       } else {
-        sprintf(buf,"(instrument %d %d %d)\n",i->id,i->type,i->note);
+        sprintf(buf,"(instrument %d %d %d %d %d)\n",i->id,i->type,i->note,i->midi_port,i->midi_channel);
       }
       fwrite(buf, 1, strlen(buf), f);
     }
@@ -1211,7 +1233,7 @@ void file_dropped_callback(char* uri_raw) {
     sprintf(converted_path, "%s.conv.wav", path);
 
     char buf2[2048];
-    sprintf(buf2,"sox -r44100 -b 16 \"%s\" \"%s\" channels 1",path,converted_path);
+    sprintf(buf2,"sox \"%s\" -r 44100 -b 16 -c 1 \"%s\"",path,converted_path);
     printf("converting WAV: [%s]\n",buf2);
     system(buf2);
 
@@ -1261,6 +1283,7 @@ void init_lisp_funcs() {
   register_alien_func("all-regions",lisp_all_regions);
 
   register_alien_func("add-region-at-mouse",lisp_add_region_at_mouse);
+  register_alien_func("edit-region-external",external_edit_selected_region);
   
   register_alien_func("octave",add_midi_octave);
   
@@ -1341,8 +1364,6 @@ int main(int argc, char **argv) {
   load_init_file();
   //load_project_file();
 
-  printf("Tracks: %d\n", active_project.tracks.size());
-
   update_ui();
 
   glv_root.on(Event::MouseMove, on_root_mousemove);
@@ -1353,7 +1374,7 @@ int main(int argc, char **argv) {
   glv_root.on(Event::KeyRepeat, on_root_keydown);
   //glv_root.enable(Controllable | HitTest);
   
-  glv::Window win(win_w, win_h, "mnt produce", &glv_root);
+  glv::Window win(win_w, win_h, "mnt produce 0.1.0", &glv_root);
   
   x11_stuff_init();
 
@@ -1362,9 +1383,6 @@ int main(int argc, char **argv) {
   
   playback_enabled = 0;
 
-  // FIXME
-  system("jack_connect produceMidiClient:produceMidiOut bristol:midi_in");
-  
   Application::run();
 
 }
