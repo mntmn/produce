@@ -224,14 +224,16 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
 
     for (Track* t : active_project.tracks) {
       float* audio_out = NULL;
-      
-      Instrument* default_instr = active_project.instruments[ti];
 
-      if (default_instr->type == I_SAMPLE) {
-        audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
-        memset(audio_out, 0, nframes*sizeof(float));
+      if (active_project.instruments.size()>ti) {
+        Instrument* default_instr = active_project.instruments[ti];
+
+        if (default_instr->type == I_SAMPLE) {
+          audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
+          memset(audio_out, 0, nframes*sizeof(float));
         
-        audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
+          audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
+        }
       }
       
       for (MPRegion* r : t->regions) {
@@ -1087,9 +1089,9 @@ Cell* add_audio_track(Cell* args, Cell* env) {
   int id = active_project.tracks.size();
   
   char* name = (char*)(car(cdr(args))->addr);
-  int r = 5;
-  int g = 5;
-  int b = 5;
+  int r = 4+((4+id)%6);
+  int g = 2;
+  int b = 10;
 
   if (car(cdr(cdr(args)))) {
     r = (car(cdr(cdr(args))))->value;
@@ -1097,11 +1099,18 @@ Cell* add_audio_track(Cell* args, Cell* env) {
     b = (car(cdr(cdr(cdr(cdr(args))))))->value;
   }
 
+  int note = 48+id;
+  int port = 0;
+  int channel = 0;
+
   //printf("add_audio_track: %d %s\n",id,name);
   
-  Track* t = new Track {id, TRACK_AUDIO, name, r, g, b};
-  
+  Track* t = new Track {id, TRACK_MIDI, name, r, g, b};
   active_project.tracks.push_back(t);
+
+  Instrument* instr = new Instrument {id, I_MIDI, name, "", note, port, channel};
+  active_project.instruments.push_back(instr);
+  
   return alloc_nil();
 }
 
