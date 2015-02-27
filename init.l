@@ -17,10 +17,10 @@
                      ("2" (set-regions-length 250))
                      ("3" (set-regions-length 500))
                      ("4" (set-regions-length 750))
+                     ("5" (set-regions-length 1000))
+                     ("6" (set-regions-length 1500))
+                     ("7" (set-regions-length 2000))
                      
-                     ("t" (let (tid fresh-track-id)
-                            (track tid "untitled track")))
-
                      ("d" (delete-selected-tracks))
 
                      ("b" (bounce-loop))

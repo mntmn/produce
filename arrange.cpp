@@ -217,7 +217,7 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
     }
     //printf("elaps: %ld\n",elaps);
     playhead_samples = playhead/TMUL*48.0;
-    printf("sample pos: %ld\n",playhead_samples);
+    //printf("sample pos: %ld\n",playhead_samples);
 
     int audio_port_idx = 0;
     int ti = 0;
@@ -256,6 +256,7 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
               //printf("sample voice fired: %s rstart: %ld\n",instr->path,rstart);
 
               long offset = playhead_samples - (rstart*48)/TMUL;
+              printf("offset: %ld\n",offset);
 
               if (offset<instr->pcm_size) {
                 int size = nframes;
@@ -328,7 +329,7 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
 }
 
 void init_jack() {
-	jack_client = jack_client_open("produce_midi_client", JackNullOption, NULL);
+	jack_client = jack_client_open("produce", JackNullOption, NULL);
 
 	if (jack_client == NULL) {
 		printf("MIDI: Could not connect to the JACK server; run jackd first?\n");
@@ -365,12 +366,19 @@ void init_jack() {
 		printf("JACK: Could not register JACK process callback.\n");
 		exit(1);
 	}
-  
 
 	if (jack_activate(jack_client)) {
 		printf("JACK: Cannot activate JACK client.\n");
     exit(1);
 	}
+
+  for (int i=0; i<NUM_AUDIO_PORTS; i++) {
+    char buf[128];
+    sprintf(buf,"produce:produce_audio_out_%d",i);
+    
+    jack_connect(jack_client,buf,"system:playback_1");
+    jack_connect(jack_client,buf,"system:playback_2");
+  }
 }
 
 static int load_wave_file(Instrument* instr, const char *wavename)
@@ -545,8 +553,7 @@ bool on_root_mouseup(View * v, GLV& glv) {
   
   if (mouse_state == MS_SELECTING) {
     select_regions_in_rect(*selection_rect);
-    selection_rect->width(0);
-    selection_rect->height(0);
+    selection_rect->disable(Visible);
   }
   mouse_state = MS_IDLE;
 
@@ -748,6 +755,7 @@ bool on_selection_rect_drag(View* v, GLV& glv) {
   }
   
   selection_rect->set(x,y,w,h);
+  selection_rect->enable(Visible);
   
   //printf("drag %f %f %f %f\n",x,y,w,h);
 
@@ -861,11 +869,35 @@ bool on_root_keydown(View * v, GLV& glv) {
 
 static int song_bars = 4*100;
 
+char* note_to_label(Instrument* i) {
+  char buf[64];
+  int octave = i->note/12;
+  char* notes[] = {
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B"
+  };
+
+  sprintf(buf, "%s%d", notes[i->note%12], octave);
+  printf("note_to_label: %s\n",buf);
+  return strdup(buf);
+}
+
 char* make_track_label(Track* t) {
   //printf("-- make_track_label %d\n",t->id);
   char tmp[128];
   if (t->type == TRACK_MIDI) {
-    snprintf(t->label, 255, "%02d MIDI %s", t->id, t->title.c_str());
+    Instrument* i = active_project.instruments[t->id];
+    snprintf(t->label, 255, "%02d MIDI %s", t->id, note_to_label(i));
   } else {
     const char* ptr = t->title.c_str();
     while (strstr(ptr, "/")) {
@@ -878,7 +910,7 @@ char* make_track_label(Track* t) {
     
     snprintf(t->label, 255, "%02d %s", t->id, tmp);
   }
-  //printf("track %d label: %s\n",t->id,t->label);
+  printf("track %d label: %s\n",t->id,t->label);
   return t->label;
 }
 
@@ -1084,32 +1116,59 @@ Cell* set_regions_length(Cell* args, Cell* env) {
   return car(args);
 }
 
-Cell* add_audio_track(Cell* args, Cell* env) {
+Cell* add_track(Cell* args, Cell* env) {
   //int id = car(args)->value;
   int id = active_project.tracks.size();
+
+  args = cdr(args);
+  char* path = (char*)(car(args)->addr);
+  Instrument* i;
+
+  printf("path: %p %s\n",path,path);
+
+  if (!strcmp(path,"midi")) {
+    int note = 48+id;
+    int port = 0;
+    int channel = 0;
+
+    args = cdr(args);
+    note = car(args)->value;
+    args = cdr(args);
+    port = car(args)->value;
+    args = cdr(args);
+    channel = car(args)->value;
+
+    path = "MIDI";
+
+    i = new Instrument {id, I_MIDI, path, path, note, port, channel};
+    active_project.instruments.push_back(i);
+  } else {
+    i = new Instrument {id, I_SAMPLE, path, path};
+    load_wave_file(i, i->path);
+    
+    active_project.instruments.push_back(i);
+  }
   
-  char* name = (char*)(car(cdr(args))->addr);
   int r = 4+((4+id)%6);
   int g = 2;
   int b = 10;
 
-  if (car(cdr(cdr(args)))) {
-    r = (car(cdr(cdr(args))))->value;
-    g = (car(cdr(cdr(cdr(args)))))->value;
-    b = (car(cdr(cdr(cdr(cdr(args))))))->value;
+  args = cdr(args);
+  r = car(args)->value;
+  args = cdr(args);
+  g = car(args)->value;
+  args = cdr(args);
+  b = car(args)->value;
+
+  Track* t;
+  if (i->type == I_MIDI) {
+    t = new Track {id, TRACK_MIDI, path, r, g, b};
+  } else {
+    t = new Track {id, TRACK_AUDIO, path, r, g, b};
   }
-
-  int note = 48+id;
-  int port = 0;
-  int channel = 0;
-
-  //printf("add_audio_track: %d %s\n",id,name);
-  
-  Track* t = new Track {id, TRACK_MIDI, name, r, g, b};
   active_project.tracks.push_back(t);
-
-  Instrument* instr = new Instrument {id, I_MIDI, name, "", note, port, channel};
-  active_project.instruments.push_back(instr);
+    
+  //printf("add_audio_track: %d %s\n",id,name);
   
   return alloc_nil();
 }
@@ -1186,7 +1245,7 @@ Cell* add_midi_octave(Cell* args, Cell* env) {
     
     int id = active_project.tracks.size();
     
-    Track* t = new Track {id, TRACK_MIDI, name, r, g, b};
+    Track* t = new Track {id, TRACK_MIDI, name, r, g, b};  
     active_project.tracks.push_back(t);
 
     // make instrument
@@ -1346,22 +1405,31 @@ Cell* lisp_save_project(Cell* args, Cell* env) {
     sprintf(buf,"(let (project-version 1) \n");
     fwrite(buf, 1, strlen(buf), f);
   
-    for (Instrument* i : active_project.instruments) {
+    /*for (Instrument* i : active_project.instruments) {
       if (i->type == I_SAMPLE) {
         sprintf(buf,"(instrument %d %d \"%s\")\n",i->id,i->type,i->path);
       } else {
         sprintf(buf,"(instrument %d %d %d %d %d)\n",i->id,i->type,i->note,i->midi_port,i->midi_channel);
       }
       fwrite(buf, 1, strlen(buf), f);
-    }
+      }*/
+
+    int c = 0;
     for (Track* t : active_project.tracks) {
-      sprintf(buf, "\n(track %d \"%s\" %d %d %d)\n",t->id,t->title.c_str(),t->r,t->g,t->b);
+      Instrument* i = active_project.instruments[c];
+      
+      if (t->type == TRACK_MIDI) {
+        sprintf(buf, "\n(track %d \"%s\" %d %d %d %d %d %d)\n",t->id,"midi",i->note,i->midi_port,i->midi_channel,t->r,t->g,t->b);
+      } else {
+        sprintf(buf, "\n(track %d \"%s\" %d %d %d)\n",t->id,i->path,t->r,t->g,t->b);
+      }
       fwrite(buf, 1, strlen(buf), f);
       
       for (MPRegion* r : t->regions) {
         sprintf(buf,"(region %d %d %d %d %d)\n",r->id,r->track_id,r->instrument_id,r->inpoint,r->length);
         fwrite(buf, 1, strlen(buf), f);
       }
+      c++;
     }
   
     sprintf(buf,")\n");
@@ -1398,15 +1466,42 @@ void file_dropped_callback(char* uri_raw) {
     int iid = active_project.tracks.size();
 
     char buf[1024];
-    snprintf(buf,1023,"(instrument %d 0 \"%s\")\0",iid,converted_path);
 
-    printf("instr --> %s\n",buf);
+    Instrument* i = new Instrument {
+      iid,
+      I_SAMPLE,
+      strdup(converted_path),
+      ""
+    };
+    load_wave_file(i, i->path);
+    active_project.instruments.push_back(i);
     
-    eval(read_string(buf), get_globals());
+    /*
 
-    snprintf(buf,1023,"(track %d \"%s\" %d %d %d)\0",iid,converted_path,4+(iid%3),4+(iid%3),7+iid%4);
+struct Instrument {
+  int id;
+  instrument_type_t type;
+  char* path;
+  char* code; // instrument source code
+  int note;
+  int midi_port;
+  int midi_channel;
+  float* pcm;
+  uint32_t pcm_size;
+};
+    */
+
+    //snprintf(buf,1023,"(track %d \"%s\" %d %d %d)\0",iid,converted_path,4+(iid%3),4+(iid%3),7+iid%4);
+
+    Track* t = new Track {
+      iid,
+      TRACK_AUDIO,
+      converted_path,
+      4+(iid%3),4+(iid%3),7+iid%4
+    };
+    make_track_label(t);
     
-    printf("track --> %s\n",buf);
+    active_project.tracks.push_back(t);
     
     eval(read_string(buf), get_globals());
   }
@@ -1432,7 +1527,7 @@ void init_lisp_funcs() {
   init_lisp();
   
   register_alien_func("instrument",add_instrument);
-  register_alien_func("track",add_audio_track);
+  register_alien_func("track",add_track);
   register_alien_func("region",add_region);
   
   register_alien_func("project-path",lisp_project_path);
