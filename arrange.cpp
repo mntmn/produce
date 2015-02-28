@@ -163,18 +163,46 @@ void send_midi(int note, int note_on, int port, char channel, int velocity) {
   memcpy(buffer, ev.data, 3);
 }
 
-static long playhead = 0;
+static double playhead = 0;
 // beat = 1/4 bar
 // if bar = 2s, then beat = 0.5s; minute = 60*2 beats; 120bpm
-static float bpm = 120.0; 
-#define TMUL 1000000L
+static double bpm = 120.0; 
+#define TMUL 1000000.0
 
-static long loop_start_point = 0;
-static long loop_end_point = 1000;
+static double loop_start_point = 0;
+static double loop_end_point = 1000;
 
-long playhead_samples = 0;
+double playhead_samples = 0;
 
 static int playback_clean_up = 0;
+
+void set_playhead(double ph) {
+  playhead = ph;
+  playhead_samples = playhead/TMUL*48.0;
+}
+
+void do_playback_cleanup() {
+  int audio_port_idx = 0;
+  int ti = 0;
+  for (Track* t : active_project.tracks) {
+    float* audio_out = NULL;
+      
+    Instrument* default_instr = active_project.instruments[ti];
+    
+    for (MPRegion* r : t->regions) {
+      if (r->fired && !r->stopped) {
+        Instrument* instr = active_project.instruments[r->instrument_id];
+        if (instr->type == I_MIDI) {
+          send_midi(instr->note,0,instr->midi_port,instr->midi_channel,127);
+        }
+      }
+      r->fired = false;
+      r->stopped = false;
+    }
+
+    ti++;
+  }
+}
 
 int jack_process_callback(jack_nframes_t nframes, void *notused)
 {
@@ -182,32 +210,44 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
     jack_midi_clear_buffer(midi_port_buffers[i]);
   }
 
-  /*if (events_queued) {
-    for (int i=0; i<events_queued; i++) {
-      send_midi(event_queue[i].note, event_queue[i].note_on, event_queue[i].port, event_queue[i].channel, event_queue[i].velocity);
-    }
-    events_queued = 0;
-    }*/
-  
-
   //printf("out buffer: %p\n",out);
   // playhead is in nanoseconds (?)
 
-  float bpm_factor = 240.0/bpm;
-  long delta = TMUL*((double)nframes/48.0);
+  double bpm_factor = 240.0/bpm; // 2
+  double delta_ns = TMUL*((double)nframes/48.0); // how many ns passed?
 
-  //printf("delta: %ld playback: %d\n",delta,playback_enabled);
+  if (playback_clean_up) {
+    playback_clean_up = 0;
+    do_playback_cleanup();
 
+    // clear audio buffers
+    int ti = 0;
+    int audio_port_idx = 0;
+    for (Track* t : active_project.tracks) {
+      float* audio_out = NULL;
+      
+      Instrument* default_instr = active_project.instruments[ti];
+
+      if (default_instr->type == I_SAMPLE) {
+        // clear all the buffers
+        audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
+        memset(audio_out, 0, nframes*sizeof(float));
+        
+        audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
+      }
+      ti++;
+    }
+  }
+  
   if (playback_enabled) {
-    playhead += delta;
-    
     if (playhead>loop_end_point*bpm_factor*TMUL) {
-      playhead = loop_start_point*bpm_factor*TMUL;
-      printf("looped to %d\n",playhead);
+      set_playhead(loop_start_point*bpm_factor*TMUL);
+      
+      printf("looped to %f\n",playhead);
         
       // looped.
       // clear fired flags of regions
-      playback_clean_up = 1;
+      do_playback_cleanup();
 
       if (bounce_enabled) {
         playback_enabled = 0;
@@ -215,9 +255,6 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
         printf("-- finished bounce.\n");
       }
     }
-    //printf("elaps: %ld\n",elaps);
-    playhead_samples = playhead/TMUL*48.0;
-    //printf("sample pos: %ld\n",playhead_samples);
 
     int audio_port_idx = 0;
     int ti = 0;
@@ -231,15 +268,18 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
         if (default_instr->type == I_SAMPLE) {
           audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
           memset(audio_out, 0, nframes*sizeof(float));
-        
+          
           audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
         }
       }
       
       for (MPRegion* r : t->regions) {
-        long rstart = (long)r->inpoint * TMUL * bpm_factor;
-        long rstop  = rstart + ((long)r->length/2 * TMUL * bpm_factor); // FIXME: why is /2 correct?!?
+        double rstart = (long)r->inpoint * TMUL * bpm_factor;
+        double rstop  = rstart + ((long)r->length/2 * TMUL * bpm_factor); // FIXME: why is /2 correct?!?
 
+        double rstart_smp = (rstart*48.0)/TMUL;
+        double rstop_smp = (rstop*48.0)/TMUL;
+        
         if (active_project.instruments.size()<=r->instrument_id) {
           printf("error: track has non-existing instrument id %d\n",r->instrument_id);
         } else {
@@ -251,22 +291,21 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
             if (instr->type == I_MIDI) {
               send_midi(instr->note,0,instr->midi_port,instr->midi_channel,127);
             }
-          } else if (!r->fired && playhead>=rstart && playhead<rstop) {
+          }
+          else if (!r->fired && playhead_samples>=rstart_smp && playhead_samples<rstop_smp) {
             if (instr->type == I_SAMPLE) {
               //printf("sample voice fired: %s rstart: %ld\n",instr->path,rstart);
 
-              long offset = playhead_samples - (rstart*48)/TMUL;
-              printf("offset: %ld\n",offset);
+              long offset = playhead_samples - rstart_smp;
+              printf("offset: %ld nframes: %ld\n",offset,nframes);
 
               if (offset<instr->pcm_size) {
                 int size = nframes;
                 if (instr->pcm_size<=offset+nframes) {
                   size = instr->pcm_size-offset;
                   r->fired = true;
-                  //printf("-- sample ended %s\n",instr->path);
                 }
                 
-                //printf("port: %d offset in sample: %d pcm_size: %d copy_size: %d\n",audio_port_idx-1,offset,instr->pcm_size,size);
                 if (audio_out) {
                   memcpy(audio_out, instr->pcm+offset, size*sizeof(float));
                 }
@@ -276,54 +315,34 @@ int jack_process_callback(jack_nframes_t nframes, void *notused)
               send_midi(instr->note,1,instr->midi_port,instr->midi_channel,127);
             }
           }
+          else if (!r->fired && playhead_samples<rstart_smp && (playhead_samples+nframes)>rstart_smp) {
+            // playback buffer reaches into beginning of frame
+            if (instr->type == I_SAMPLE) {
+              long offset = (rstart_smp - playhead_samples);
+              long size = nframes - (rstart_smp - playhead_samples);
+              printf("offset2: %ld size: %ld\n",offset,size);
+
+              /*int size = nframes - rstart_smp;
+              if (instr->pcm_size<=offset+nframes) {
+                size = instr->pcm_size-offset;
+                r->fired = true;
+              }*/
+                
+              if (audio_out) {
+                memcpy(audio_out+offset, instr->pcm, size*sizeof(float));
+              }
+            }
+          }
 
         }
       } // end region loop
 
       ti++;
     } // end track loop
+
+    playhead += delta_ns;
+    playhead_samples += nframes;
   }
-
-  if (playback_clean_up) {
-    playback_clean_up = 0;
-    int audio_port_idx = 0;
-    int ti = 0;
-    for (Track* t : active_project.tracks) {
-      float* audio_out = NULL;
-      
-      Instrument* default_instr = active_project.instruments[ti];
-
-      if (default_instr->type == I_SAMPLE) {
-        // clear all the buffers
-        audio_out = (float*)jack_port_get_buffer(audio_output_ports[audio_port_idx], nframes);
-        memset(audio_out, 0, nframes*sizeof(float));
-        
-        audio_port_idx = (audio_port_idx+1)%NUM_AUDIO_PORTS;
-      }
-      
-      for (MPRegion* r : t->regions) {
-        if (r->fired && !r->stopped) {
-          Instrument* instr = active_project.instruments[r->instrument_id];
-          if (instr->type == I_MIDI) {
-            send_midi(instr->note,0,instr->midi_port,instr->midi_channel,127);
-          }
-        }
-        r->fired = false;
-        r->stopped = false;
-      }
-
-      ti++;
-    }
-  }
-  
-  /*if (out[0]) {
-    printf("! ");
-    for (int i=0; i<128; i++) {
-      printf("%04x ",out[i]);
-    }
-    printf("\n");
-    }*/
-  
   
 	return 0;
 }
@@ -459,8 +478,8 @@ int old_track_dy = 0;
 View* hover_track_view = NULL;
 
 void toggle_playback() {
-  playback_clean_up = 1;
   playback_enabled = 1-playback_enabled;
+  do_playback_cleanup();
 }
 
 MPRegion* view_to_region(View* v) {
@@ -844,10 +863,10 @@ bool on_root_keydown(View * v, GLV& glv) {
     zoom_out_x();
     break;
   case ',':
-    playhead -= 250*TMUL;
+    set_playhead(playhead - 250*TMUL);
     break;
   case '.':
-    playhead += 250*TMUL;
+    set_playhead(playhead + 250*TMUL);
     break;
   case 13:
     // cursor left
@@ -1277,7 +1296,7 @@ Cell* bounce_loop(Cell* args, Cell* env) {
 
   // 1 second front padding
   bounce_enabled = 1;
-  playhead = loop_start_point*bpm_factor*TMUL;
+  set_playhead(loop_start_point*bpm_factor*TMUL);
   playback_enabled = 1;
 }
 
