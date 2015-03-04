@@ -480,6 +480,7 @@ View* hover_track_view = NULL;
 void toggle_playback() {
   playback_enabled = 1-playback_enabled;
   do_playback_cleanup();
+  playback_clean_up = 1;
 }
 
 MPRegion* view_to_region(View* v) {
